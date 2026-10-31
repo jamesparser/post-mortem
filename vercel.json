@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node" },
+    { "src": "web/**", "use": "@vercel/static" },
+    { "src": "audio/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/server.js" },
+    { "src": "/healthz", "dest": "/server.js" },
+    { "src": "/audio/(.*)", "dest": "/audio/$1" },
+    { "src": "/", "dest": "/web/index.html" },
+    { "src": "/quest", "status": 308, "headers": { "Location": "/quest/" } },
+    { "src": "/quest/", "dest": "/web/quest/index.html" },
+    { "src": "/(.*)", "dest": "/web/$1" }
+  ]
+}

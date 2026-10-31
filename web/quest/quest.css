@@ -1,0 +1,147 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: #0a0a0c;
+  color: #d8d2c4;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+body {
+  background: radial-gradient(120% 90% at 50% 0%, #171318 0%, #0a0a0c 55%, #060607 100%);
+}
+
+#landing {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+
+.kicker {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #8c8577;
+}
+
+h1 {
+  margin: 10px 0 16px;
+  font-weight: 400;
+  font-size: 44px;
+}
+
+.lead {
+  font-size: 19px;
+  line-height: 1.5;
+  color: #cfc7b6;
+}
+
+.field {
+  display: block;
+  margin: 28px 0 18px;
+}
+
+.label {
+  display: block;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8c8577;
+  margin-bottom: 8px;
+}
+
+input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  font: inherit;
+  font-size: 18px;
+  color: #d8d2c4;
+  background: #121216;
+  border: 1px solid #3a342c;
+  border-radius: 8px;
+}
+
+input[type="text"]:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #c8a24a;
+  outline-offset: 2px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+button {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 14px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+button.primary {
+  background: #c8a24a;
+  color: #14110c;
+}
+
+button.primary:disabled {
+  background: #3a342c;
+  color: #8c8577;
+  cursor: default;
+}
+
+button.ghost {
+  background: transparent;
+  color: #d8d2c4;
+  border-color: #3a342c;
+}
+
+.note {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #8c8577;
+}
+
+.note a {
+  color: #c8a24a;
+}
+
+.facts {
+  margin: 32px 0 20px;
+  padding-left: 18px;
+  color: #a79f8f;
+  line-height: 1.6;
+}
+
+.xr-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+body.previewing .xr-canvas {
+  display: block;
+}
+
+#preview-ui {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 5;
+}
+
+#preview-ui .note {
+  margin: 8px 0 0;
+}

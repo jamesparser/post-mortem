@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterWrite": [
+      {
+        "name": "banned-dash-check",
+        "description": "Reject em dash, en dash, and double hyphen in any written file",
+        "command": "grep -nE '—|–|--' $FILE && echo 'BANNED DASH FOUND. Use a period or a comma.' && exit 1 || exit 0"
+      }
+    ],
+    "beforeCommit": [
+      {
+        "name": "no-dates-in-copy",
+        "description": "Submission materials must not carry dates",
+        "command": "echo 'Reminder: no dates on README, slides, video descriptions, or write ups.'"
+      }
+    ]
+  }
+}

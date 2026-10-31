@@ -1,0 +1,16 @@
+.env
+node_modules/
+.DS_Store
+*.log
+dist/
+build/
+Library/
+Temp/
+obj/
+quest/[Ll]ibrary/
+quest/[Tt]emp/
+quest/[Oo]bj/
+quest/[Bb]uild/
+quest/[Bb]uilds/
+quest/[Ll]ogs/
+.vercel

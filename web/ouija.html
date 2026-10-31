@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>POST-Mortem: The Board</title>
+  <meta name="description" content="Ask the board." />
+  <link rel="stylesheet" href="ouija.css" />
+</head>
+<body>
+  <div id="room">
+    <canvas id="board" aria-label="Ouija board"></canvas>
+    <div id="caption" aria-live="polite"></div>
+    <div id="whisper-layer" aria-hidden="true"></div>
+
+    <div id="controls">
+      <div class="ask-row">
+        <input id="question" type="text" maxlength="120"
+               placeholder="Is anyone there?" autocomplete="off" />
+        <button id="btn-ask" class="primary" type="button">Ask</button>
+        <button id="btn-mic" class="ghost" type="button">Use my voice</button>
+      </div>
+      <p id="hint">Headphones recommended. Press GOOD BYE at any time to close the board.</p>
+    </div>
+  </div>
+
+  <script src="ouija-board.js"></script>
+  <script src="ouija-audio.js"></script>
+  <script src="ouija-spirit.js"></script>
+  <script src="ouija.js"></script>
+</body>
+</html>

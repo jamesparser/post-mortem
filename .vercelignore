@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+/HANDOVER.md
+/docs
+/tools
+/quest
+node_modules

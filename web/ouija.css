@@ -1,0 +1,147 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #070605;
+  color: #cfc4ab;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  overflow: hidden;
+}
+
+#room {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(90% 70% at 50% 35%, #241a12 0%, #070605 70%, #000 100%);
+}
+
+#board {
+  width: min(92vw, 760px);
+  height: min(58vh, 460px);
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  touch-action: none;
+}
+
+#caption {
+  position: absolute;
+  left: 50%;
+  bottom: 22vh;
+  transform: translateX(-50%);
+  min-height: 1.6em;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #7c7160;
+  text-align: center;
+  width: min(90vw, 720px);
+  pointer-events: none;
+}
+
+#whisper-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.spirit {
+  position: absolute;
+  width: 120px;
+  height: 260px;
+  opacity: 0;
+  transition: opacity 800ms ease;
+  background:
+    radial-gradient(60% 40% at 50% 18%, rgba(220, 214, 196, 0.22), transparent 70%),
+    linear-gradient(180deg, rgba(220, 214, 196, 0.10), rgba(220, 214, 196, 0.02));
+  filter: blur(2px);
+  border-radius: 60px 60px 20px 20px;
+}
+
+#controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 720px);
+  z-index: 5;
+}
+
+.ask-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#question {
+  flex: 1 1 280px;
+  padding: 12px 14px;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 16px;
+  color: #cfc4ab;
+  background: rgba(20, 16, 12, 0.85);
+  border: 1px solid #4a3a28;
+  border-radius: 8px;
+  outline: none;
+}
+
+#question:focus {
+  border-color: #c8a24a;
+  box-shadow: 0 0 0 3px rgba(200, 162, 74, 0.18);
+}
+
+button {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+button.primary {
+  background: #c8a24a;
+  color: #1a1508;
+  border-color: #c8a24a;
+}
+
+button.ghost {
+  background: transparent;
+  color: #cfc4ab;
+  border-color: #4a3a28;
+}
+
+button:focus-visible {
+  outline: 2px solid #c8a24a;
+  outline-offset: 2px;
+}
+
+#hint {
+  margin: 12px 0 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7c7160;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  #board { height: 52vh; }
+  #caption { bottom: 26vh; }
+  .ask-row { flex-direction: column; }
+  button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spirit { display: none; }
+}

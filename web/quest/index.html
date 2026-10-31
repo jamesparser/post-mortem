@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>POST-Mortem. The house.</title>
+  <meta name="description" content="Thing lives in your house. A passthrough haunting for Quest 3." />
+  <link rel="stylesheet" href="quest.css" />
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <main id="landing">
+    <p class="kicker">POST-Mortem</p>
+    <h1>The house</h1>
+    <p class="lead">Something walks on its fingers here. Put on your Quest 3, stand somewhere with room to turn around, and let him in.</p>
+
+    <label class="field">
+      <span class="label">What are you burying tonight</span>
+      <input id="input-name" type="text" maxlength="80" placeholder="Optional. A Pixel 4 with a dead battery" autocomplete="off" />
+    </label>
+
+    <div class="row">
+      <button id="btn-enter" class="primary" type="button" disabled>Checking for a headset</button>
+      <button id="btn-preview" class="ghost" type="button">Preview on this screen</button>
+    </div>
+    <p id="status" class="note"></p>
+
+    <ul class="facts">
+      <li>He freezes when you look at him. He moves when you do not.</li>
+      <li>Hide and seek and the burial live in the menu. Press the brass button on your left wrist, or B on the controller.</li>
+      <li>Map your room in the headset settings first, so he can hide under your real tables.</li>
+      <li>Headphones are not needed. The sound is already beside you.</li>
+    </ul>
+    <p class="note"><a href="/">Back to the funeral</a></p>
+  </main>
+
+  <div id="preview-ui" hidden>
+    <button id="btn-exit-preview" class="ghost" type="button">Leave the preview</button>
+    <p class="note">Watch him. Then look away.</p>
+  </div>
+
+  <script type="module" src="landing.js"></script>
+</body>
+</html>

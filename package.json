@@ -1,0 +1,14 @@
+{
+  "name": "post-mortem",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A proper funeral for dead devices.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "audio": "python3 tools/make_audio.py"
+  },
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}
