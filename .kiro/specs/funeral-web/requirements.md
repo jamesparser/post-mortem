@@ -63,7 +63,7 @@ Acceptance:
 - A casket sits in the center of the screen with the device name on a small plate.
 - Flowers fall slowly across the scene for the duration of the eulogy.
 - Storm and wind bed plays quietly from the start. Organ dirge fades in when the eulogy begins.
-- After the audio ends, the casket lowers out of view. The lowering itself is quiet and mechanical. No haptic, or only a faint settling thud. It must never read as a heartbeat.
+- After the audio ends, the casket lowers out of view on chains. The lowering itself is quiet and mechanical. No haptic, or only a faint settling thud. It must never read as a heartbeat.
 - A beat of silence after the casket is gone. This silence is load bearing. Do not fill it.
 - Then a heartbeat from the ground. Two soft pulses, a lub and a dub, at about 60 beats per minute, muffled as if coming up through soil. It repeats three or four times, then stops and does not come back.
 - On phones that allow it, the heartbeat is the vibration. Two pulses, a pause, two pulses. Nothing else vibrates during the lowering, so the heartbeat is unmistakable.

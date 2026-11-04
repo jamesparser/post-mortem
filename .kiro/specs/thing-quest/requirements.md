@@ -25,10 +25,10 @@ Acceptance:
 - Passthrough AR is active. The room is visible.
 - A virtual casket anchors to the floor plane in front of the user.
 - The user physically places a real device into the casket using hand tracking.
-- The casket lid closes. After a long pause it buzzes like a phone on vibrate, three times, and something knocks once from inside. The controllers buzz with it. Then it is still. It is not a resurrection. It is the last twitch.
+- The casket lid closes.
 - The organ dirge plays. Flowers fall in the room.
 - The eulogy text floats in the air like a printed program. A Deepgram voice reads it.
-- The casket sinks through the floor. The room returns to normal.
+- Chains lower the casket through the floor. No haptics while it goes down. Then silence. Then a muffled heartbeat from under the floor, three or four times, each weaker, with the controllers pulsing lub dub in the same rhythm. Then nothing, and the room returns to normal.
 
 ### US-2. Thing ambient
 
@@ -40,7 +40,7 @@ Acceptance:
 - It scurries like a rat. Quick darting bursts along skirting boards and across open floor. It runs in short sprints and stops to listen. It never glides and it never walks calmly.
 - It hides under tables and chairs. It climbs furniture. It sits on shelves and on the backs of sofas.
 - It freezes when the user looks directly at it, then bolts the moment the user looks away.
-- If the user stands still long enough, Thing creeps closer and leaps onto the shoulder or the arm for a jump scare.
+- If the user stands still long enough, Thing creeps closer and leaps onto the shoulder for a jump scare. If the user is seated, he may land in the lap instead.
 - It makes small sounds as it moves. Nails on wood, a scuffle, a soft thud.
 
 ### US-3. Hide and seek

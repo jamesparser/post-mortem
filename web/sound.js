@@ -162,10 +162,40 @@ const Sound = (() => {
     }
   }
 
+  // Quiet the room for the lowering, so the heartbeat lands in near silence.
+  function hush() {
+    if (!ctx) return;
+    clearTimeout(ambientTimer);
+    fadeTo(organGain, 0, 3);
+    fadeTo(stormGain, LEVELS.storm * 0.35, 3);
+  }
+
+  // Lub dub from under the ground, on the audio clock so it stays steady.
+  async function heartbeat(count, period) {
+    if (!ctx) return;
+    try {
+      const buffer = await load("heartbeat");
+      const start = ctx.currentTime + 0.05;
+      for (let i = 0; i < count; i += 1) {
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const g = ctx.createGain();
+        // Each beat a little weaker. It is losing.
+        g.gain.value = 1 - i * 0.12;
+        src.connect(g);
+        g.connect(fxGain);
+        src.start(start + i * period);
+      }
+    } catch (err) {
+      // Ignore.
+    }
+  }
+
   function settle() {
     if (!ctx) return;
     fadeTo(organGain, 0, 6);
     fadeTo(stormGain, LEVELS.storm * 0.7, 6);
+    scheduleAmbient();
   }
 
   function reset() {
@@ -183,5 +213,5 @@ const Sound = (() => {
     if (master) fadeTo(master, muted ? 0 : 1, 0.25);
   }
 
-  return { unlock, startRoom, startOrgan, duck, attachVoice, settle, reset, setMuted, playOnce };
+  return { unlock, startRoom, startOrgan, duck, attachVoice, hush, heartbeat, settle, reset, setMuted, playOnce };
 })();

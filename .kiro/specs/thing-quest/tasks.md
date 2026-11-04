@@ -60,7 +60,8 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 7.4 Floating program in step with the voice.
 - [x] 7.5 Voice from the backend, browser speech fallback.
 - [x] 7.6 Sink through the floor, then ambient resumes.
-- [x] 7.7 After the lid locks, the casket buzzes three times and knocks once from inside, with controller haptics. One faint buzz on the way down. Then nothing.
+- [x] 7.7 Chains lower the casket with no haptics. Silence. Then a muffled lub dub from under the floor three or four times, each weaker, with controller haptics in the same rhythm. Then nothing.
+- [x] 7.8 Seated players may get Thing in the lap instead of on the shoulder.
 
 ## 8. Sound
 

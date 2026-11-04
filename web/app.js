@@ -25,6 +25,7 @@ const els = {
   panelDone: document.getElementById("panel-done"),
   eulogy: document.getElementById("eulogy"),
   casket: document.getElementById("casket"),
+  grave: document.getElementById("grave"),
   btnPhoto: document.getElementById("btn-photo"),
   btnBegin: document.getElementById("btn-begin"),
   btnReplay: document.getElementById("btn-replay"),
@@ -207,39 +208,58 @@ async function runService() {
   }
 
   await delay(1800);
-  await stirCasket();
-  await delay(2200);
-  els.casket.classList.add("lowered");
-  Sound.playOnce("thud", null, 0.8);
-  await delay(2600);
+  await lowerAndListen();
   Sound.settle();
+  linkBoard();
   show(els.panelDone);
   state.running = false;
   els.btnBegin.disabled = false;
 }
 
-// The device is not quite gone. Three buzzes and a knock from inside the
-// closed casket. On phones that allow it, the phone in your hand buzzes too.
-async function stirCasket() {
-  Sound.playOnce("buzz", "front", 1);
+// The ending. Chains lower the casket. Silence. Then a muffled heartbeat from
+// the ground, three or four times, like something trying to get out. On phones
+// that allow it, the phone beats in the same rhythm. Then nothing, for good.
+async function lowerAndListen() {
+  Sound.hush();
+  Sound.playOnce("chains", "front", 1);
+  els.casket.classList.add("lowered");
+  await delay(6200);
+  els.grave.hidden = false;
+  Sound.playOnce("thud", "front", 0.7);
+  // The silence is load bearing. Do not fill it.
+  await delay(3200);
+  const beats = 3 + (Math.random() < 0.5 ? 1 : 0);
+  const period = 1050;
+  Sound.heartbeat(beats, period / 1000);
   try {
-    if (!state.muted && navigator.vibrate) navigator.vibrate([420, 330, 420, 330, 420]);
+    if (!state.muted && navigator.vibrate) {
+      const pattern = [];
+      for (let i = 0; i < beats; i += 1) pattern.push(70, 190, 90, period - 350);
+      navigator.vibrate(pattern);
+    }
   } catch (err) {
     // Vibration is optional.
   }
-  els.casket.classList.add("stirring");
-  await delay(2300);
-  els.casket.classList.remove("stirring");
-  await delay(900);
-  Sound.playOnce("thud", "front", 1.35);
-  els.casket.classList.add("knock");
-  try {
-    if (!state.muted && navigator.vibrate) navigator.vibrate(90);
-  } catch (err) {
-    // Ignore.
+  for (let i = 0; i < beats; i += 1) {
+    els.grave.classList.add("beat");
+    setTimeout(() => els.grave.classList.remove("beat"), 420);
+    await delay(period);
   }
-  await delay(400);
-  els.casket.classList.remove("knock");
+  await delay(2600);
+}
+
+// The board opens on the departed: name and cause of death travel with the link.
+function linkBoard() {
+  const link = document.getElementById("link-board");
+  if (!link) return;
+  const params = new URLSearchParams({ mode: "device", device: state.name });
+  if (state.condition) params.set("condition", state.condition);
+  link.href = "ouija.html?" + params.toString();
+  try {
+    sessionStorage.setItem("pm-departed", JSON.stringify({ name: state.name, condition: state.condition }));
+  } catch (err) {
+    // Storage blocked. The link still carries it.
+  }
 }
 
 function waitFor(audio) {
@@ -368,6 +388,7 @@ els.btnAgain.addEventListener("click", () => {
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   Sound.reset();
   els.casket.classList.remove("lowered");
+  els.grave.hidden = true;
   els.inputName.value = "";
   els.photoNote.hidden = true;
   setDeviceName("your device");

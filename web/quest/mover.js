@@ -129,11 +129,14 @@ export class ThingMover {
     this.restPose = options.pose || "walk";
   }
 
-  // Leap from wherever he is to a point near the viewer's shoulder.
+  // Leap from wherever he is onto the viewer. Seated viewers may get him in
+  // the lap instead of on the shoulder.
   leapToShoulder(camera, onLand) {
     this.stop();
     const head = camera.getWorldPosition(new THREE.Vector3());
-    const dest = this.shoulderPoint(camera, head);
+    const seated = head.y - this.room.floorY < 1.35;
+    this.perch = seated && Math.random() < 0.6 ? "lap" : "shoulder";
+    const dest = this.perchPoint(camera, head);
     this.segment = {
       type: "leap",
       from: this.position.clone(),
@@ -142,11 +145,24 @@ export class ThingMover {
       duration: 0.55,
       t: 0,
       done: () => {
-        this.shoulder = { camera, time: 0 };
+        this.shoulder = { camera, time: 0, perch: this.perch };
         if (onLand) onLand();
       },
     };
     this.anim.setMode("leap");
+  }
+
+  perchPoint(camera, head) {
+    return this.perch === "lap" ? this.lapPoint(camera, head) : this.shoulderPoint(camera, head);
+  }
+
+  // On the thighs of a seated viewer, facing them. Low and in front, never at the face.
+  lapPoint(camera, head) {
+    const q = camera.getWorldQuaternion(tmpQuat);
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q).setY(0).normalize();
+    const p = head.clone().addScaledVector(fwd, 0.3);
+    p.y = Math.max(this.room.floorY + 0.4, head.y - 0.62);
+    return p;
   }
 
   // Right shoulder, outside the line of the eyes and well clear of the hands.
@@ -276,10 +292,19 @@ export class ThingMover {
   updateShoulder(dt) {
     const camera = this.shoulder.camera;
     const head = camera.getWorldPosition(new THREE.Vector3());
-    const goal = this.shoulderPoint(camera, head);
-    this.position.lerp(goal, Math.min(1, dt * 14));
     const q = camera.getWorldQuaternion(tmpQuat);
     const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(q).setY(0).normalize();
+    if (this.shoulder.perch === "lap") {
+      // Sitting in the lap, facing the viewer, gripping.
+      this.position.lerp(this.lapPoint(camera, head), Math.min(1, dt * 14));
+      this.up.lerp(UP, Math.min(1, dt * 10)).normalize();
+      this.forward.lerp(fwd.clone().negate(), Math.min(1, dt * 10)).normalize();
+      this.shoulder.time += dt;
+      this.anim.setMode(this.shoulder.time % 4 < 3 ? "grip" : "still");
+      return;
+    }
+    const goal = this.shoulderPoint(camera, head);
+    this.position.lerp(goal, Math.min(1, dt * 14));
     // Clinging to the side of the neck, fingers forward over the collarbone.
     const right = new THREE.Vector3().crossVectors(fwd, UP).normalize();
     this.up.lerp(right.clone().multiplyScalar(0.4).add(UP).normalize(), Math.min(1, dt * 10)).normalize();

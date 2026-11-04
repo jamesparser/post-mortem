@@ -3,24 +3,56 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>POST-Mortem: The Board</title>
-  <meta name="description" content="Ask the board." />
+  <title>POST-Mortem. The board.</title>
+  <meta name="description" content="A talking board. Ask the dead, or ask the device you just buried." />
   <link rel="stylesheet" href="ouija.css" />
 </head>
 <body>
   <div id="room">
-    <canvas id="board" aria-label="Ouija board"></canvas>
+    <header id="top">
+      <p class="kicker">POST-Mortem</p>
+      <div id="modes" role="tablist" aria-label="Who to ask">
+        <button id="mode-dead" role="tab" type="button" aria-selected="true">Talk to the dead</button>
+        <button id="mode-device" role="tab" type="button" aria-selected="false">Your dead device</button>
+      </div>
+      <p id="mode-note">The board is open. Ask it anything.</p>
+    </header>
+
+    <form id="device-form" hidden>
+      <label class="field">
+        <span class="label">The departed</span>
+        <input id="device-name" type="text" maxlength="80" placeholder="iPod classic" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span class="label">What took it</span>
+        <input id="device-condition" type="text" maxlength="80" placeholder="a click wheel that stopped clicking" autocomplete="off" />
+      </label>
+      <button id="btn-summon" class="primary" type="submit">Reach it</button>
+    </form>
+
+    <div id="board-wrap">
+      <canvas id="board" aria-label="A talking board. The planchette spells the answer."></canvas>
+    </div>
     <div id="caption" aria-live="polite"></div>
     <div id="whisper-layer" aria-hidden="true"></div>
 
     <div id="controls">
       <div class="ask-row">
-        <input id="question" type="text" maxlength="120"
-               placeholder="Is anyone there?" autocomplete="off" />
+        <input id="question" type="text" maxlength="120" placeholder="Is anyone there?" autocomplete="off" aria-label="Your question" />
         <button id="btn-ask" class="primary" type="button">Ask</button>
-        <button id="btn-mic" class="ghost" type="button">Use my voice</button>
       </div>
-      <p id="hint">Headphones recommended. Press GOOD BYE at any time to close the board.</p>
+      <div class="ask-row small">
+        <button id="btn-mic" class="ghost" type="button">Use my voice</button>
+        <button id="btn-goodbye" class="ghost" type="button">Good bye</button>
+        <button id="btn-mute" class="ghost" type="button">Mute</button>
+        <a class="ghost link" href="/">The funeral</a>
+      </div>
+      <p id="hint">Headphones. Rest a finger on the planchette if you dare.</p>
+    </div>
+
+    <div id="closed" hidden>
+      <p id="closed-line">The board is closed. It is not empty.</p>
+      <button id="btn-again" class="ghost" type="button">Light the board again</button>
     </div>
   </div>
 

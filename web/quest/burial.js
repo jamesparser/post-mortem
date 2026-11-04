@@ -1,7 +1,8 @@
 // Passthrough burial. A small casket on a wooden bier in the real room.
 // Lay the real device inside with your hand. The lid closes, the organ plays,
 // flowers fall with weight, a printed program floats, the priest speaks, and
-// the casket sinks through the floor.
+// chains take the casket down through the floor. Then silence, and a
+// heartbeat from underneath.
 
 import * as THREE from "three";
 import { woodTextures, woodMaterial, brassMaterial, satinMaterial } from "./skin.js";
@@ -323,11 +324,9 @@ export class BurialMode {
         this.hinge.rotation.z = 0;
         audio.oneShot("thud", casketCenter, 0.45, 0.9);
         haptics(0.4, 120);
-        this.beginStir();
+        this.startService();
       }
     }
-
-    if (this.state === "stirring") this.updateStir(dt);
 
     if (this.state === "service" && this.reveal) {
       const elapsed = (performance.now() - this.reveal.start) / 1000;
@@ -341,19 +340,21 @@ export class BurialMode {
     if (this.state === "lowering") {
       this.sink = Math.min(1.25, this.sink + dt * 0.17);
       this.root.position.y = this.ctx.room.floorY - this.sink;
-      if (!this.lastBuzz && this.sink > 0.45) {
-        // One more, fainter, from under the floor. Then nothing.
-        this.lastBuzz = true;
-        audio.oneShot("buzz", casketCenter, 0.18, 0.92);
-        haptics(0.15, 300);
-      }
       this.program.mesh.material.opacity = Math.max(0, 1 - this.sink * 1.4);
       if (this.sink >= 1.25) {
-        this.state = "after";
-        this.timer = 6;
-        if (this.organ) this.organ.setGain(0, 2.5);
-        caption.show("Rest now.", 4);
+        // Gone. The silence that follows is load bearing. Do not fill it.
+        this.state = "silence";
+        this.timer = 3.2;
+        audio.oneShot("thud", this.gravePoint(), 0.25, 0.7);
       }
+    }
+
+    if (this.state === "silence" && this.timer <= 0) this.beginHeartbeat();
+
+    if (this.state === "heartbeat" && this.timer <= 0) {
+      this.state = "after";
+      this.timer = 6;
+      caption.show("Rest now.", 4);
     }
 
     if (this.state === "after" && this.timer <= 0) {
@@ -372,64 +373,31 @@ export class BurialMode {
     this.petals.update(dt, this.root.position.y - this.ctx.room.floorY);
   }
 
-  // He is not quite gone. After the lid locks there is a long pause, then the
-  // casket buzzes like a phone on vibrate and knocks once from inside. The
-  // controllers buzz with it. Then stillness, and the service goes on.
-  beginStir() {
-    this.state = "stirring";
-    this.stirTime = 0;
-    this.shake = 0;
-    this.casketBase = this.casket.position.clone();
-    this.stirEvents = [
-      { at: 2.6, run: () => this.buzzOnce(0.45) },
-      { at: 5.2, run: () => this.knock() },
-      { at: 8.6, run: () => this.startService() },
-    ];
+  // The point under the floor where the casket came to rest.
+  gravePoint() {
+    const p = this.root.position.clone();
+    p.y = this.ctx.room.floorY - 0.5;
+    return p;
   }
 
-  buzzOnce(volume) {
+  // Something under the floor will not stay quiet. A muffled lub dub, three
+  // or four times, each a little weaker, with the controllers beating in the
+  // same rhythm. Then nothing, and it does not come back.
+  beginHeartbeat() {
     const { audio, haptics } = this.ctx;
-    const center = this.casket.getWorldPosition(new THREE.Vector3());
-    audio.oneShot("buzz", center, volume);
-    // Three pulses, in time with the sound.
-    [0, 750, 1500].forEach((delay) => {
+    const beats = 3 + (Math.random() < 0.5 ? 1 : 0);
+    const period = 1.05;
+    this.state = "heartbeat";
+    this.timer = beats * period + 2.4;
+    const at = this.gravePoint();
+    for (let i = 0; i < beats; i += 1) {
+      const strength = 1 - i * 0.12;
       setTimeout(() => {
-        if (this.state !== "stirring") return;
-        this.shake = 0.45;
-        haptics(0.55, 420);
-      }, delay);
-    });
-  }
-
-  knock() {
-    const { audio, haptics } = this.ctx;
-    const center = this.casket.getWorldPosition(new THREE.Vector3());
-    audio.oneShot("thud", center, 0.5, 1.35);
-    this.shake = 0.18;
-    this.shakeAmount = 0.006;
-    haptics(0.9, 90);
-  }
-
-  updateStir(dt) {
-    this.stirTime += dt;
-    while (this.stirEvents.length && this.stirTime >= this.stirEvents[0].at) {
-      this.stirEvents.shift().run();
-    }
-    if (this.shake > 0) {
-      this.shake -= dt;
-      const amount = this.shakeAmount || 0.0025;
-      this.casket.position.set(
-        this.casketBase.x + (Math.random() - 0.5) * amount,
-        this.casketBase.y + Math.random() * amount * 0.5,
-        this.casketBase.z + (Math.random() - 0.5) * amount
-      );
-      this.casket.rotation.z = (Math.random() - 0.5) * amount * 2;
-      this.hinge.rotation.z = Math.random() * amount * 1.5;
-    } else {
-      this.shakeAmount = 0;
-      this.casket.position.copy(this.casketBase);
-      this.casket.rotation.z = 0;
-      this.hinge.rotation.z = 0;
+        if (this.state !== "heartbeat") return;
+        audio.oneShot("heartbeat", at, 0.75 * strength);
+        haptics(0.6 * strength, 70);
+        setTimeout(() => this.state === "heartbeat" && haptics(0.42 * strength, 90), 260);
+      }, i * period * 1000);
     }
   }
 
@@ -485,8 +453,11 @@ export class BurialMode {
     this.program.draw(this.name, text, 1);
     if (this.organ) this.organ.setGain(0.45, 1);
     await new Promise((r) => setTimeout(r, 2500));
+    // Chains take him down. Quiet and mechanical, no haptics.
+    if (this.organ) this.organ.setGain(0, 3);
+    audio.bed("storm-bed", 0.04, 3);
+    audio.oneShot("chains", center.clone().add(new THREE.Vector3(0, 0.6, 0)), 0.6);
     this.state = "lowering";
-    audio.oneShot("thud", center, 0.3, 0.7);
   }
 
   browserVoice(text) {

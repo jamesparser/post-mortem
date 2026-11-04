@@ -2,75 +2,147 @@
 
 html, body {
   margin: 0;
-  height: 100%;
+  min-height: 100%;
   background: #070605;
   color: #cfc4ab;
   font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  overflow: hidden;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 #room {
   position: relative;
-  width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 18px 16px 28px;
+  background: radial-gradient(90% 70% at 50% 38%, #221810 0%, #070605 70%, #000 100%);
+}
+
+#top {
+  text-align: center;
+  z-index: 3;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #7c7160;
+}
+
+#modes {
+  display: inline-flex;
+  border: 1px solid #4a3a28;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+}
+
+#modes button {
+  border-radius: 999px;
+  background: transparent;
+  color: #a79b85;
+  border: 0;
+  padding: 9px 16px;
+}
+
+#modes button[aria-selected="true"] {
+  background: #c8a24a;
+  color: #1a1508;
+}
+
+#mode-note {
+  margin: 12px 0 14px;
+  font-style: italic;
+  font-size: 16px;
+  color: #a79b85;
+  min-height: 1.4em;
+}
+
+#device-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
   justify-content: center;
-  background:
-    radial-gradient(90% 70% at 50% 35%, #241a12 0%, #070605 70%, #000 100%);
+  width: min(94vw, 820px);
+  margin-bottom: 14px;
+  z-index: 3;
+}
+
+#device-form[hidden] {
+  display: none;
+}
+
+.field {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7c7160;
+}
+
+#board-wrap {
+  width: min(94vw, 820px, 90vh);
+  aspect-ratio: 3 / 2;
+  position: relative;
 }
 
 #board {
-  width: min(92vw, 760px);
-  height: min(58vh, 460px);
+  width: 100%;
+  height: 100%;
+  display: block;
   border-radius: 14px;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.75), 0 2px 0 rgba(255, 220, 170, 0.06) inset;
   touch-action: none;
+  cursor: grab;
 }
 
 #caption {
-  position: absolute;
-  left: 50%;
-  bottom: 22vh;
-  transform: translateX(-50%);
+  margin: 16px 0 8px;
   min-height: 1.6em;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 12px;
-  letter-spacing: 0.22em;
+  font-size: 15px;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: #7c7160;
+  color: #cbbd9c;
   text-align: center;
-  width: min(90vw, 720px);
+  width: min(94vw, 820px);
   pointer-events: none;
 }
 
 #whisper-layer {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
+  z-index: 2;
 }
 
 .spirit {
   position: absolute;
-  width: 120px;
-  height: 260px;
+  width: 140px;
+  height: auto;
   opacity: 0;
-  transition: opacity 800ms ease;
-  background:
-    radial-gradient(60% 40% at 50% 18%, rgba(220, 214, 196, 0.22), transparent 70%),
-    linear-gradient(180deg, rgba(220, 214, 196, 0.10), rgba(220, 214, 196, 0.02));
-  filter: blur(2px);
-  border-radius: 60px 60px 20px 20px;
+  transition: opacity 900ms ease;
+  mix-blend-mode: screen;
 }
 
 #controls {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(92vw, 720px);
-  z-index: 5;
+  width: min(94vw, 820px);
+  z-index: 3;
 }
 
 .ask-row {
@@ -80,10 +152,14 @@ html, body {
   justify-content: center;
 }
 
-#question {
+.ask-row.small {
+  margin-top: 10px;
+}
+
+input[type="text"] {
   flex: 1 1 280px;
   padding: 12px 14px;
-  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-family: inherit;
   font-size: 16px;
   color: #cfc4ab;
   background: rgba(20, 16, 12, 0.85);
@@ -92,12 +168,13 @@ html, body {
   outline: none;
 }
 
-#question:focus {
+input[type="text"]:focus {
   border-color: #c8a24a;
   box-shadow: 0 0 0 3px rgba(200, 162, 74, 0.18);
 }
 
-button {
+button,
+a.link {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 12px;
   letter-spacing: 0.12em;
@@ -106,6 +183,9 @@ button {
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 button.primary {
@@ -114,32 +194,63 @@ button.primary {
   border-color: #c8a24a;
 }
 
-button.ghost {
+button.ghost,
+a.link {
   background: transparent;
   color: #cfc4ab;
   border-color: #4a3a28;
 }
 
-button:focus-visible {
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid #c8a24a;
   outline-offset: 2px;
 }
 
 #hint {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #7c7160;
+  color: #6c6252;
   text-align: center;
 }
 
-@media (max-width: 520px) {
-  #board { height: 52vh; }
-  #caption { bottom: 26vh; }
-  .ask-row { flex-direction: column; }
-  button { width: 100%; }
+#closed {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: rgba(0, 0, 0, 0.94);
+  padding: 16px;
+  text-align: center;
+}
+
+#closed[hidden] {
+  display: none;
+}
+
+#closed-line {
+  font-size: 22px;
+  font-style: italic;
+  color: #b8ad97;
+  max-width: 520px;
+}
+
+@media (max-width: 560px) {
+  #modes button { padding: 8px 12px; font-size: 11px; }
+  .ask-row button, .ask-row a.link { flex: 1 1 auto; justify-content: center; }
+  #caption { font-size: 13px; letter-spacing: 0.22em; }
 }
 
 @media (prefers-reduced-motion: reduce) {

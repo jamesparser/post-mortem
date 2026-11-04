@@ -37,7 +37,7 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 5.2 Casket lowering animation after the audio ends.
 - [x] 5.3 Final line and "Bury another" reset.
 - [x] 5.4 Name plate text binding to the typed or recognized device name.
-- [x] 5.5 Last stir before lowering: three muffled buzzes and a knock, the casket shakes, the phone vibrates where the browser allows.
+- [x] 5.5 Chains lower the casket. Silence. A muffled heartbeat from the ground three or four times, the grave mound swells with each beat, and the phone vibrates in the same rhythm where the browser allows.
 
 ## 6. Sound bed
 

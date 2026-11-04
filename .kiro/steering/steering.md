@@ -29,8 +29,8 @@ Thing is a disembodied human hand in the spirit of the Addams Family character o
 
 - Frontend: vanilla HTML, CSS, and JS. No framework. No bundler. Keep the repo small and the deploy simple.
 - Backend: Node with Express. One small server. Handles eulogy generation, device recognition, and TTS proxying.
-- LLM and vision: `google/gemma-3-27b-it` on the Nebius Token Factory. One model for the eulogy writer, the spirit voice, and device recognition. Endpoint `https://api.tokenfactory.nebius.com/v1`. Configure by env var. Never hardcode keys. Do not use expensive models like Kimi K3.
-- TTS: Deepgram Aura. Male voice. Called from the backend so the key never reaches the browser.
+- LLM: `google/gemma-3-27b-it` on the Nebius Token Factory for the eulogy writer and the talking board. Vision: `openbmb/MiniCPM-V-4_5` on the same endpoint and key for device recognition. Endpoint `https://api.tokenfactory.nebius.com/v1`. The server defaults to these, env vars override. Never hardcode keys. Do not use expensive models like Kimi K3.
+- TTS: Deepgram Aura, `aura-2-zeus-en`. Male voice. Called from the backend so the key never reaches the browser.
 - Audio: static files under `audio/`. Served by the same Node server.
 - Quest 3: WebXR in the Quest browser. Passthrough, plane and mesh detection, hand tracking. three.js from a CDN import map. Lives under `web/quest/` and is served by the same Node server. Not required for the web deliverable.
 

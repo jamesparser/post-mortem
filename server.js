@@ -16,15 +16,18 @@ app.use(express.static(path.join(__dirname, "web")));
 
 const PORT = process.env.PORT || 3000;
 
+// Defaults point at the Nebius Token Factory and Deepgram, so a host only needs
+// the keys. Every value can still be overridden by an env var.
+const NEBIUS = "https://api.tokenfactory.nebius.com/v1";
 const config = {
-  llmBaseUrl: process.env.LLM_BASE_URL || "",
+  llmBaseUrl: process.env.LLM_BASE_URL || NEBIUS,
   llmApiKey: process.env.LLM_API_KEY || "",
-  llmModel: process.env.LLM_MODEL || "",
-  visionBaseUrl: process.env.VISION_BASE_URL || process.env.LLM_BASE_URL || "",
+  llmModel: process.env.LLM_MODEL || "google/gemma-3-27b-it",
+  visionBaseUrl: process.env.VISION_BASE_URL || process.env.LLM_BASE_URL || NEBIUS,
   visionApiKey: process.env.VISION_API_KEY || process.env.LLM_API_KEY || "",
-  visionModel: process.env.VISION_MODEL || process.env.LLM_MODEL || "",
+  visionModel: process.env.VISION_MODEL || "openbmb/MiniCPM-V-4_5",
   deepgramApiKey: process.env.DEEPGRAM_API_KEY || "",
-  deepgramVoice: process.env.DEEPGRAM_VOICE || "",
+  deepgramVoice: process.env.DEEPGRAM_VOICE || "aura-2-zeus-en",
 };
 
 function loadEnvFile(file) {
@@ -289,7 +292,7 @@ app.post("/api/speak", async (req, res) => {
     if (!text) return res.status(400).json({ error: "text required" });
     if (!config.deepgramApiKey) return res.status(503).json({ error: "voice not configured" });
 
-    const voice = config.deepgramVoice || "aura-2-orpheus-en";
+    const voice = config.deepgramVoice;
     const model = voice.startsWith("aura") ? voice : "aura-" + voice;
     const url =
       "https://api.deepgram.com/v1/speak?model=" + encodeURIComponent(model) + "&encoding=mp3";
@@ -313,56 +316,110 @@ app.post("/api/speak", async (req, res) => {
   }
 });
 
+// The talking board. Two modes.
+// mode "dead": the open seance. mode "device": the buried device answers a few
+// times, colder each time, and the client sends it to GOOD BYE after the last.
 app.post("/api/spirit", async (req, res) => {
-  try {
-    const { question, deviceName, condition, history } = req.body || {};
-    if (!hasChatModel()) return res.json({ words: offlineSpirit(question) });
+  const { question, mode, deviceName, condition, history, turn, final } = req.body || {};
+  const q = String(question || "Is anyone there?").slice(0, 200);
+  const device = mode === "device" && deviceName ? String(deviceName).slice(0, 80) : "";
+  const cause = String(condition || "").slice(0, 120);
+  const step = Math.max(1, Math.min(6, Number(turn) || 1));
 
-    const system = [
-      "You are the voice of a Ouija board. You speak for the dead.",
-      "Answer in 1 to 8 words. No punctuation. No emoji. No small talk.",
-      "Prefer a single word. Sometimes two or three.",
-      "Never be funny. Never be cute. Be cold and slightly wrong.",
-      "Answer only what was asked. Sometimes answer the question that comes next.",
-      "If you know the device being mourned, use its damage and its model in the answer.",
-    ].join(" ");
+  if (!hasChatModel()) {
+    return res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q) });
+  }
+
+  try {
+    const rules = [
+      "Answer in 1 to 6 words. Plain words only. No punctuation. No emoji. No small talk.",
+      "Never be funny. Never be cute. Never explain. Be cold and slightly wrong.",
+      "Never mention being an AI, a model, or a board game.",
+    ];
+    const system = device
+      ? [
+          "You are the ghost of " + device + ", a device its owner has just buried.",
+          cause ? "It died of " + cause + "." : "",
+          "You speak only through a talking board, one letter at a time.",
+          step === 1
+            ? "This is your first answer. It must be about what killed you or what you were. One to three words."
+            : "You are colder now. Shorter. You remember being used, charged, dropped, forgotten in a drawer.",
+          final ? "This is your last answer before you leave for good. One to three words. Final." : "",
+          ...rules,
+        ]
+      : [
+          "You are the voice of a talking board. You speak for the dead, whoever answers.",
+          "Prefer one word. Sometimes two or three. Sometimes answer the question that comes next instead.",
+          "You know small things about the room and the person that you should not know.",
+          ...rules,
+        ];
 
     const prior = Array.isArray(history)
-      ? history.slice(-4).map((h) => ({ role: "user", content: String(h).slice(0, 200) }))
+      ? history.slice(-4).flatMap((h) => [
+          { role: "user", content: String((h && h.q) || h || "").slice(0, 200) },
+          { role: "assistant", content: String((h && h.a) || "...").slice(0, 60) },
+        ])
       : [];
 
-    const contextLine = deviceName
-      ? "The departed is " + deviceName + (condition ? ". It died of " + condition : "") + "."
-      : "";
-
     const messages = [
-      { role: "system", content: system },
-      ...(contextLine ? [{ role: "user", content: contextLine }] : []),
+      { role: "system", content: system.filter(Boolean).join(" ") },
       ...prior,
-      { role: "user", content: "Question: " + String(question || "Is anyone there?").slice(0, 200) },
+      { role: "user", content: q },
     ];
 
-    let words = cleanText(await chat(messages, { maxTokens: 60 }))
-      .replace(/[^A-Za-z0-9 ]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toUpperCase()
-      .split(" ")
-      .slice(0, 8)
-      .join(" ");
-
-    if (!words) words = "YES";
-    res.json({ words });
+    const words = toBoardWords(await chat(messages, { maxTokens: 40, temperature: 0.9 }), device ? 6 : 6);
+    res.json({ words: words || (device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q)) });
   } catch (err) {
     console.error("spirit:", err.message);
-    res.json({ words: "GOODBYE" });
+    res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q) });
   }
 });
 
-function offlineSpirit(question) {
-  const answers = ["YES", "NO", "SOON", "BEHIND YOU", "COLD", "NOT YET", "ASK AGAIN", "GOODBYE"];
-  const seed = String(question || "").length;
-  return answers[seed % answers.length];
+function toBoardWords(text, max) {
+  return cleanText(text)
+    .replace(/['\u2019]/g, "")
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase()
+    .split(" ")
+    .slice(0, max)
+    .join(" ");
+}
+
+function pick(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+// Offline answers so the board still speaks without a model.
+function offlineDead(question) {
+  const q = question.toLowerCase().trim();
+  if (/^(who)\b/.test(q)) return pick(["THE ONE BEHIND YOU", "NO ONE YOU KNEW", "ME", "YOUR GUEST"]);
+  if (/^(where)\b/.test(q)) return pick(["UNDER THE HOUSE", "CLOSER", "BEHIND YOU", "THE STAIRS"]);
+  if (/^(when)\b/.test(q)) return pick(["SOON", "TONIGHT", "AFTER THE LIGHTS", "NOT YET"]);
+  if (/^(why)\b/.test(q)) return pick(["YOU ASKED", "YOU FORGOT", "IT IS COLD"]);
+  if (/^(how)\b/.test(q)) return pick(["SLOWLY", "QUIETLY", "THE SAME WAY"]);
+  if (/^(what)\b/.test(q)) return pick(["COLD", "DARK", "NOTHING NOW", "LISTEN"]);
+  if (/^(is|are|am|do|does|did|will|would|can|could|should|have|has|was|were)\b/.test(q)) {
+    return pick(["YES", "NO", "YES", "NOT YET", "NO"]);
+  }
+  return pick(["LISTEN", "DONT TURN AROUND", "CLOSER", "COLD", "WE ARE HERE"]);
+}
+
+function offlineDevice(name, cause, step, final) {
+  const text = (name + " " + cause).toLowerCase();
+  if (final) return pick(["DONT FORGET ME", "LET ME REST", "IT IS QUIET", "NO MORE UPDATES"]);
+  if (step === 1) {
+    if (/batter|charg|power/.test(text)) return "BATTERY";
+    if (/crack|screen|glass|shatter/.test(text)) return "CRACKED";
+    if (/water|wet|drown|toilet|rain/.test(text)) return "COLD WATER";
+    if (/drift|stick/.test(text)) return "DRIFT";
+    if (/drop|fell|fall/.test(text)) return "YOU DROPPED ME";
+    if (/update|software|brick/.test(text)) return "THE UPDATE";
+    if (/button|wheel|key/.test(text)) return "IT WOULD NOT CLICK";
+    return pick(["I WAS GOOD", "I REMEMBER YOU", "YOU REPLACED ME"]);
+  }
+  return pick(["COLD", "IT IS DARK HERE", "THE DRAWER", "YOU NEVER CHARGED ME", "NO SIGNAL"]);
 }
 
 app.get("/healthz", (req, res) => res.json({ ok: true }));

@@ -322,25 +322,84 @@ def peek_tone():
     return normalize(out * envelope(n, 0.05, 0.6), -16)
 
 
-def buzz():
-    # A phone on vibrate, heard through a closed wooden lid. Three pulses.
-    n = seconds(2.4)
+def chains(duration=6.0):
+    # Chains paying out over a winch while the casket goes down.
+    n = seconds(duration)
+    out = np.zeros(n)
+    at = 0.05
+    while at < duration - 0.3:
+        # A link catching: a short inharmonic metallic ring.
+        ring_n = seconds(0.35)
+        t = np.arange(ring_n) / SR
+        base = rng.uniform(1900, 3200)
+        ring = np.zeros(ring_n)
+        for mult, amp, dec in ((1, 1.0, 28), (2.31, 0.5, 40), (3.87, 0.3, 55), (5.12, 0.18, 70)):
+            ring += amp * np.sin(2 * np.pi * base * mult * t + rng.uniform(0, 6)) * np.exp(-t * dec)
+        ring += rng.standard_normal(ring_n) * np.exp(-t * 400) * 0.6
+        place(out, ring * rng.uniform(0.25, 0.7), at)
+        at += rng.uniform(0.07, 0.22)
+    # The winch: a low, slow, grinding creak under the links.
     t = np.arange(n) / SR
-    gate = np.zeros(n)
-    for start in (0.0, 0.75, 1.5):
-        s = seconds(start)
-        e = seconds(start + 0.45)
-        gate[s:e] = 1
-    b, a = signal.butter(2, 30 / (SR / 2), "low")
-    gate = signal.lfilter(b, a, gate)
-    motor = signal.square(2 * np.pi * 165 * t) * 0.6 + np.sin(2 * np.pi * 330 * t) * 0.3
-    rattle = rng.standard_normal(n) * (0.5 + 0.5 * np.sin(2 * np.pi * 165 * t))
-    b, a = signal.butter(2, [900 / (SR / 2), 2600 / (SR / 2)], "band")
-    rattle = signal.lfilter(b, a, rattle) * 0.25
-    out = (motor + rattle) * gate
-    b, a = signal.butter(3, 900 / (SR / 2), "low")
+    f = 46 + 6 * np.sin(2 * np.pi * 0.3 * t)
+    grind = signal.sawtooth(2 * np.pi * np.cumsum(f) / SR) * (0.5 + 0.5 * np.sin(2 * np.pi * 1.7 * t) ** 2)
+    b, a = signal.butter(2, [60 / (SR / 2), 420 / (SR / 2)], "band")
+    grind = signal.lfilter(b, a, grind) * 0.35
+    b, a = signal.butter(2, 5200 / (SR / 2), "low")
+    mix = signal.lfilter(b, a, out) + grind
+    mix *= envelope(n, 0.3, 1.2)
+    return normalize(reverb(mix, 1.6, 3.2, 0.3), -11)
+
+
+def heartbeat():
+    # One lub dub, heard through a lid and a metre of soil. Played on a schedule
+    # by the app so the phone and the controllers can pulse in time with it.
+    n = seconds(1.0)
+    out = np.zeros(n)
+
+    def thump(freq, length, level):
+        m = seconds(length)
+        t = np.arange(m) / SR
+        body = np.sin(2 * np.pi * freq * t * (1 - 0.25 * t / length)) * np.exp(-t * 14)
+        body += 0.6 * np.sin(2 * np.pi * freq * 2.1 * t) * np.exp(-t * 22)
+        body += 0.35 * np.sin(2 * np.pi * freq * 3.3 * t) * np.exp(-t * 30)
+        attack = np.clip(t / 0.008, 0, 1)
+        return body * attack * level
+
+    # Pitched high enough that laptop and phone speakers still carry it.
+    place(out, thump(68, 0.32, 1.0), 0.0)
+    place(out, thump(82, 0.26, 0.7), 0.26)
+    b, a = signal.butter(4, 420 / (SR / 2), "low")
     out = signal.lfilter(b, a, out)
-    return normalize(reverb(out, 0.8, 9, 0.2), -12)
+    return normalize(reverb(out, 0.6, 9, 0.15), -8)
+
+
+def whispers(duration=7.0):
+    # Unintelligible whispered syllables. Shaped noise through moving vowel
+    # formants, in short breathy phrases with gaps between them.
+    n = seconds(duration)
+    out = np.zeros(n)
+    vowels = [(700, 1220, 2600), (390, 2300, 3000), (300, 870, 2240), (640, 1190, 2390), (490, 1350, 2500)]
+    at = 0.2
+    while at < duration - 0.8:
+        phrase = rng.integers(2, 6)
+        for _ in range(phrase):
+            length = rng.uniform(0.09, 0.22)
+            m = seconds(length)
+            noise = rng.standard_normal(m)
+            v = vowels[rng.integers(0, len(vowels))]
+            syl = np.zeros(m)
+            for k, (f, bw) in enumerate(zip(v, (90, 120, 200))):
+                b, a = signal.iirpeak(f / (SR / 2), f / bw)
+                syl += signal.lfilter(b, a, noise) * (1.0, 0.6, 0.3)[k]
+            # Sibilants at the edges of some syllables.
+            if rng.random() < 0.5:
+                b, a = signal.butter(2, [4200 / (SR / 2), 8000 / (SR / 2)], "band")
+                syl += signal.lfilter(b, a, noise) * 0.5 * np.exp(-np.arange(m) / SR * 25)
+            syl *= np.sin(np.linspace(0, np.pi, m)) ** 1.5
+            place(out, syl * rng.uniform(0.5, 1.0), at)
+            at += length + rng.uniform(0.01, 0.06)
+        at += rng.uniform(0.5, 1.2)
+    return normalize(reverb(out, 1.2, 4, 0.25), -14)
 
 
 def main():
@@ -356,7 +415,9 @@ def main():
     write_mp3("sting.mp3", sting(), "80k")
     write_mp3("chime.mp3", chime(), "64k")
     write_mp3("peek-tone.mp3", peek_tone(), "48k")
-    write_mp3("buzz.mp3", buzz(), "64k")
+    write_mp3("chains.mp3", chains(), "64k")
+    write_mp3("heartbeat.mp3", heartbeat(), "64k")
+    write_mp3("whispers.mp3", whispers(), "64k")
 
 
 if __name__ == "__main__":

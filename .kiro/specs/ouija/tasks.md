@@ -4,58 +4,58 @@ Sequenced checklist. Keep status in sync.
 
 ## 1. Board skeleton
 
-- [ ] 1.1 `web/ouija.html` with the canvas, controls, and caption layer.
-- [ ] 1.2 `web/ouija.css` with the dark room, vignette, and thin caption type.
-- [ ] 1.3 `web/ouija-board.js` draws the board once to an offscreen buffer and exposes letter centers.
-- [ ] 1.4 Planchette drawing with shadow and window.
+- [x] 1.1 `web/ouija.html` with the canvas, controls, and caption layer.
+- [x] 1.2 `web/ouija.css` with the dark room, vignette, and thin caption type.
+- [x] 1.3 `web/ouija-board.js` draws the board once to an offscreen buffer and exposes letter centers.
+- [x] 1.4 Planchette drawing with shadow and window.
 
 ## 2. Planchette motion
 
-- [ ] 2.1 Critically damped spring toward a target letter center.
-- [ ] 2.2 Low frequency noise so the slide is never perfectly smooth.
-- [ ] 2.3 Overshoot and settle on arrival.
-- [ ] 2.4 Per letter pause with longer gaps at word boundaries.
-- [ ] 2.5 One or two drift-and-correct moves per answer.
+- [x] 2.1 Critically damped spring toward a target letter center.
+- [x] 2.2 Low frequency noise so the slide is never perfectly smooth.
+- [x] 2.3 Overshoot and settle on arrival.
+- [x] 2.4 Per letter pause with longer gaps at word boundaries.
+- [x] 2.5 One or two drift-and-correct moves per answer.
 
 ## 3. Asking
 
-- [ ] 3.1 Mic request on the Ask gesture only. Text field fallback always visible.
-- [ ] 3.2 Speech recognition caption in a thin font. Web Speech API where available.
-- [ ] 3.3 Typed question path with the same flow.
-- [ ] 3.4 Board reaction before the answer: planchette shiver and a low tone swell.
+- [x] 3.1 Mic request on the Ask gesture only. Text field fallback always visible.
+- [x] 3.2 Speech recognition caption in a thin font. Web Speech API where available.
+- [x] 3.3 Typed question path with the same flow.
+- [x] 3.4 Board reaction before the answer: planchette shiver and a low tone swell.
 
 ## 4. The voice of the dead
 
-- [ ] 4.1 `POST /api/spirit` on the server with the cold prompt and optional device context.
-- [ ] 4.2 Split the answer into words and feed the spelling engine.
-- [ ] 4.3 Post-funeral mode: seed with the device name and condition. First answer must use them.
-- [ ] 4.4 Drive the board toward GOOD BYE within 2 to 4 exchanges in post-funeral mode.
+- [x] 4.1 `POST /api/spirit` on the server with the cold prompt and optional device context.
+- [x] 4.2 Split the answer into words and feed the spelling engine.
+- [x] 4.3 Post-funeral mode: seed with the device name and condition. First answer must use them.
+- [x] 4.4 Drive the board toward GOOD BYE within 2 to 4 exchanges in post-funeral mode.
 
 ## 5. Guided hands
 
-- [ ] 5.1 Mouse pull while the planchette moves. Escapable. Off on mouse up.
-- [ ] 5.2 Touch path with 40 ms lag and a small directional offset.
-- [ ] 5.3 One unsolicited planchette move per session when the user is not touching.
+- [x] 5.1 Fingers on the planchette with mouse or touch. It follows with lag and a slight pull of its own. Off on release. (A browser cannot move the real cursor, so the pull is shown on the planchette.)
+- [x] 5.2 Touch path with 40 ms lag and a small directional offset.
+- [x] 5.3 One unsolicited planchette move per session when the user is not touching.
 
 ## 6. Sound
 
-- [ ] 6.1 Room tone (pink noise, low pass) at a near silent level.
-- [ ] 6.2 Whisper samples with panner placement left, right, and behind center.
-- [ ] 6.3 Groans, breath, chair creak, floorboard at random long intervals.
-- [ ] 6.4 Ducking during spelling. Silence between letters.
-- [ ] 6.5 Quiet suggestion to use headphones on first load.
+- [x] 6.1 Room tone (pink noise, low pass) at a near silent level.
+- [x] 6.2 Whisper samples with panner placement left, right, and behind center.
+- [x] 6.3 Groans, breath, chair creak, floorboard at random long intervals.
+- [x] 6.4 Ducking during spelling. Silence between letters.
+- [x] 6.5 Quiet suggestion to use headphones on first load.
 
 ## 7. Spirits
 
-- [ ] 7.1 Canvas spirit silhouettes at four edge anchors. Fade in, hold, fade out.
-- [ ] 7.2 Random 40 to 90 second timer plus a post-answer trigger.
-- [ ] 7.3 Never in the center. Never more often than the scare budget allows.
+- [x] 7.1 Canvas spirit silhouettes at four edge anchors. Fade in, hold, fade out.
+- [x] 7.2 Random 40 to 90 second timer plus a post-answer trigger.
+- [x] 7.3 Never in the center. Never more often than the scare budget allows.
 
 ## 8. Ending
 
-- [ ] 8.1 GOOD BYE control. Planchette slides there. Lights fade. Tone drops out.
-- [ ] 8.2 Final line and restart control.
-- [ ] 8.3 Reduced motion path: slower planchette, no spirit flashes.
+- [x] 8.1 GOOD BYE control. Planchette slides there. Lights fade. Tone drops out.
+- [x] 8.2 Final line and restart control.
+- [x] 8.3 Reduced motion path: slower planchette, no spirit flashes.
 
 ## 9. Quest variant
 
@@ -66,6 +66,14 @@ Sequenced checklist. Keep status in sync.
 
 ## 10. Ship
 
-- [ ] 10.1 Link from the funeral done screen to the board.
+- [x] 10.1 Link from the funeral done screen to the board.
 - [ ] 10.2 Manual pass on desktop, on a phone, and on a headset.
 - [ ] 10.3 Comfort review against the scare budget.
+
+## 11. Modes
+
+- [x] 11.1 One board, a switch at the top: Talk to the dead (default) and Your dead device.
+- [x] 11.2 Your dead device reads the name and cause of death from the funeral link, the session, or a short form.
+- [x] 11.3 Two to four answers, colder each time, then GOOD BYE and the board locks until it is lit again.
+- [x] 11.4 Offline answers for both modes when no model key is set.
+- [x] 11.5 Phones vibrate briefly at each letter while a finger rests on the planchette.

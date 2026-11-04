@@ -15,7 +15,8 @@ const FILES = [
   "chime",
   "peek-tone",
   "footsteps-wood",
-  "buzz",
+  "chains",
+  "heartbeat",
 ];
 
 const forward = new THREE.Vector3();

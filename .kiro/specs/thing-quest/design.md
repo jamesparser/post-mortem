@@ -81,6 +81,7 @@ Category weights: blend 0.33, under 0.2, behind 0.17, top 0.17, hanging 0.13. If
 - Hanging from a door frame: run to its base, climb the frame.
 - Runs are rat like: hard acceleration, uneven surges, late braking.
 - Leap to the shoulder: a ballistic arc to a point 19 cm right of the head and 26 cm down. Never toward the face or the hands.
+- Seated players (head under 1.35 m from the floor) get the lap about 60 percent of the time: 30 cm in front of the head and 62 cm down, facing the player, gripping.
 
 ## Ambient brain
 
@@ -110,7 +111,9 @@ intro, hiding, hunt, caught or scared, score, done.
 - Lid closes, organ starts from the casket, 56 petals fall with drag and come to rest on the lid or floor.
 - The program floats above the casket and reveals the eulogy in step with the voice.
 - Voice from `/api/speak`, positioned at the casket. Browser speech if unavailable.
-- The casket and the petals on it sink through the floor. The floor occluder hides them.
+- Chains: the organ fades, a chain and winch sound plays from the casket, and the casket and the petals on it sink through the floor. No haptics. The floor occluder hides them.
+- Silence for about three seconds.
+- Heartbeat: a muffled lub dub from half a meter under the floor, three or four beats about one second apart, each weaker. Each beat sends two controller pulses, lub then dub, 260 ms apart.
 - Ambient resumes. He was never going to stay gone.
 
 ## Audio
