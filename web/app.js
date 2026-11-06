@@ -1,6 +1,8 @@
 // POST-Mortem web client.
 // States: idle, naming, recognizing, writing, speaking, lowering, done.
 
+const VOICE_RATE = 0.9;
+
 const state = {
   name: "",
   make: "",
@@ -186,10 +188,13 @@ async function runService() {
   if (audioUrl) {
     state.audio = new Audio(audioUrl);
     state.audio.muted = state.muted;
+    // Slower and lower than the raw voice: a priest who has buried too many phones.
+    state.audio.preservesPitch = false;
+    state.audio.playbackRate = VOICE_RATE;
     Sound.attachVoice(state.audio);
     Sound.duck(true);
     const duration = await audioDurationMs(state.audio);
-    const reveal = revealText(els.eulogy, state.eulogy, duration ? duration * 0.92 : null);
+    const reveal = revealText(els.eulogy, state.eulogy, duration ? (duration / VOICE_RATE) * 0.92 : null);
     try {
       await state.audio.play();
       await waitFor(state.audio);

@@ -31,7 +31,7 @@ A stranger can open one link with no login, bury a phone in two minutes, and lea
 
 ## What we learned
 
-Spec driven development is not about one tool. Several agents worked on this project, Kiro CLI among them, and the steering file and specs are what kept the priest sounding like the same priest no matter who wrote the code.
+Write it down before you build it. The steering file set the priest's voice once, and every session read it, so the burial, the board, and Thing all sound like the same house. When the plan changed, from Unity to WebXR, from a buzz to a heartbeat, from an automatic jump to a gate, the spec changed first and the task lists kept score. An agent hook that rejects banned punctuation on every write sounds petty, and it kept the house style intact across every file in the repo.
 
 ## What's next
 

@@ -151,11 +151,37 @@ const Sound = (() => {
   }
 
   // Route an <audio> element through the voice bus so ducking stays smooth.
+  // A stone church: a long, dark reverb tail built from decaying noise.
+  let church = null;
+  function churchReverb() {
+    if (church) return church;
+    const seconds = 3.2;
+    const n = Math.floor(ctx.sampleRate * seconds);
+    const ir = ctx.createBuffer(2, n, ctx.sampleRate);
+    for (let c = 0; c < 2; c += 1) {
+      const d = ir.getChannelData(c);
+      for (let i = 0; i < n; i += 1) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6);
+    }
+    const conv = ctx.createConvolver();
+    conv.buffer = ir;
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.value = 2600;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.32;
+    conv.connect(lowpass);
+    lowpass.connect(wet);
+    wet.connect(voiceGain);
+    church = conv;
+    return church;
+  }
+
   function attachVoice(audioEl) {
     if (!ctx || !audioEl || audioEl.dataset.routed) return;
     try {
       const src = ctx.createMediaElementSource(audioEl);
       src.connect(voiceGain);
+      src.connect(churchReverb());
       audioEl.dataset.routed = "1";
     } catch (err) {
       // Fall back to the element playing on its own.

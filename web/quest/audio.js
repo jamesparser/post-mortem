@@ -3,6 +3,9 @@
 
 import * as THREE from "three";
 
+// The priest plays slower and lower than the raw voice.
+export const VOICE_RATE = 0.9;
+
 const FILES = [
   "storm-bed",
   "organ-dirge",
@@ -175,6 +178,25 @@ export class AudioEngine {
     bed.gain.gain.setTargetAtTime(volume, this.ctx.currentTime, fade / 3);
   }
 
+  // A long dark reverb tail for the priest, as if the room were stone.
+  church() {
+    if (this.churchNode) return this.churchNode;
+    const n = Math.floor(this.ctx.sampleRate * 3.2);
+    const ir = this.ctx.createBuffer(2, n, this.ctx.sampleRate);
+    for (let c = 0; c < 2; c += 1) {
+      const d = ir.getChannelData(c);
+      for (let i = 0; i < n; i += 1) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6);
+    }
+    const conv = this.ctx.createConvolver();
+    conv.buffer = ir;
+    const wet = this.ctx.createGain();
+    wet.gain.value = 0.28;
+    conv.connect(wet);
+    wet.connect(this.master);
+    this.churchNode = conv;
+    return conv;
+  }
+
   // Play a voice clip from a point in the room. Resolves when it ends.
   voice(url, at, volume = 1) {
     return new Promise((resolve) => {
@@ -182,6 +204,8 @@ export class AudioEngine {
       const el = new Audio();
       el.crossOrigin = "anonymous";
       el.src = url;
+      el.preservesPitch = false;
+      el.playbackRate = VOICE_RATE;
       const src = this.ctx.createMediaElementSource(el);
       const gain = this.ctx.createGain();
       gain.gain.value = volume;
@@ -194,6 +218,7 @@ export class AudioEngine {
       src.connect(gain);
       gain.connect(pan);
       pan.connect(this.master);
+      src.connect(this.church());
       el.onended = () => resolve(true);
       el.onerror = () => resolve(false);
       el.play().catch(() => resolve(false));

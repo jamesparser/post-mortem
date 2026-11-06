@@ -7,6 +7,7 @@
 import * as THREE from "three";
 import { woodTextures, woodMaterial, brassMaterial, satinMaterial } from "./skin.js";
 import { Program } from "./ui.js";
+import { VOICE_RATE } from "./audio.js";
 
 const CASKET = { length: 0.46, height: 0.13, wall: 0.014 };
 const BIER_HEIGHT = 0.68;
@@ -439,7 +440,7 @@ export class BurialMode {
     if (url) {
       const probe = new Audio(url);
       const duration = await new Promise((resolve) => {
-        probe.onloadedmetadata = () => resolve(probe.duration || words * 0.4);
+        probe.onloadedmetadata = () => resolve(probe.duration ? probe.duration / VOICE_RATE : words * 0.4);
         probe.onerror = () => resolve(words * 0.4);
         setTimeout(() => resolve(words * 0.4), 2500);
       });
