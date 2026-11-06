@@ -14,7 +14,7 @@ Built for Kiroween 2026.
 
 ## Web app (what judges run)
 
-Live at https://post-mortem-ten.vercel.app. The Quest haunting is at https://post-mortem-ten.vercel.app/quest/.
+Live at https://post-mortem-funeral.vercel.app. It opens on a gate: the burial, the spirit board, and Thing. The Quest app is at https://post-mortem-funeral.vercel.app/quest/.
 
 Run it locally:
 

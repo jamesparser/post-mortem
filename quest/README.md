@@ -7,7 +7,7 @@ Everything is passthrough AR in your real home and it must look realistic. Thing
 ## Run it on a headset
 
 1. Map your room on the Quest 3 (Settings, Physical space, Space setup). Thing hides using that map.
-2. Open https://post-mortem-ten.vercel.app/quest/ in the Quest browser, or serve your own copy over HTTPS. WebXR needs a secure origin. Either deploy, or run locally and tunnel it, or use `adb reverse tcp:3000 tcp:3000` with a USB cable and open `http://localhost:3000/quest/`.
+2. Open https://post-mortem-funeral.vercel.app/quest/ in the Quest browser, or serve your own copy over HTTPS. WebXR needs a secure origin. Either deploy, or run locally and tunnel it, or use `adb reverse tcp:3000 tcp:3000` with a USB cable and open `http://localhost:3000/quest/`.
 3. Open `/quest/` in the Quest browser and press Enter the house.
 4. The menu opens first. Press the brass button on your left wrist, or B or Y, to bring it back.
 
