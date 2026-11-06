@@ -230,7 +230,14 @@ app.post("/api/recognize", async (req, res) => {
       },
     ];
 
-    const text = await visionChat(messages);
+    // MiniCPM-V first. If it is down or gone, Gemma 3 reads images too.
+    let text;
+    try {
+      text = await visionChat(messages);
+    } catch (err) {
+      console.error("recognize: vision model failed, trying the chat model:", err.message);
+      text = await chat(messages, { temperature: 0.1, maxTokens: 200 });
+    }
     let parsed = {};
     try {
       parsed = JSON.parse(text.trim());
@@ -316,7 +323,7 @@ app.post("/api/speak", async (req, res) => {
   }
 });
 
-// The talking board. Two modes.
+// The spirit board. Two modes.
 // mode "dead": the open seance. mode "device": the buried device answers a few
 // times, colder each time, and the client sends it to GOOD BYE after the last.
 app.post("/api/spirit", async (req, res) => {
@@ -340,7 +347,7 @@ app.post("/api/spirit", async (req, res) => {
       ? [
           "You are the ghost of " + device + ", a device its owner has just buried.",
           cause ? "It died of " + cause + "." : "",
-          "You speak only through a talking board, one letter at a time.",
+          "You speak only through a spirit board, one letter at a time.",
           step === 1
             ? "This is your first answer. It must be about what killed you or what you were. One to three words."
             : "You are colder now. Shorter. You remember being used, charged, dropped, forgotten in a drawer.",
@@ -348,7 +355,7 @@ app.post("/api/spirit", async (req, res) => {
           ...rules,
         ]
       : [
-          "You are the voice of a talking board. You speak for the dead, whoever answers.",
+          "You are the voice of a spirit board. You speak for the dead, whoever answers.",
           "Prefer one word. Sometimes two or three. Sometimes answer the question that comes next instead.",
           "You know small things about the room and the person that you should not know.",
           ...rules,

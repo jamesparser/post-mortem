@@ -6,7 +6,9 @@ You place your device in a casket. An AI priest identifies it and delivers a eul
 
 A companion Quest 3 experience brings back Thing, a disembodied hand that stalks the house and will not stay in the grave. Hide and seek, ambient dread, and a proper burial in passthrough AR.
 
-And a talking board that listens and spells answers from the dead, letter by letter. Talk to the dead, or talk to the device you just buried, once more, before it leaves for good.
+And a spirit board that listens and spells answers from the dead, letter by letter. It never shows you the letter. You feel for it. Talk to the dead, or talk to the device you buried, once more, before it leaves for good.
+
+The site opens on a gate with three doors: the burial, the spirit board, and Thing.
 
 Built for Kiroween 2026.
 
@@ -35,7 +37,7 @@ Open `/quest/` in the Quest 3 browser. WebXR passthrough, no install. See `quest
 ```
 .kiro/     steering, specs, hooks for Kiro
 docs/      brief and design notes
-web/       the funeral and the talking board (what judges run)
+web/       the gate, the burial, and the spirit board (what judges run)
 web/quest/ the Quest 3 Thing experience, WebXR
 quest/     headset notes
 audio/     organ dirge, storm, footsteps, groans, all synthesized
@@ -45,7 +47,7 @@ tools/     the script that synthesizes every sound
 ## Specs
 
 - `.kiro/specs/funeral-web/` the burial app
-- `.kiro/specs/ouija/` the board
+- `.kiro/specs/ouija/` the spirit board
 - `.kiro/specs/thing-quest/` Thing hide and seek, ambient, and the VR burial
 
 ## Built with Kiro

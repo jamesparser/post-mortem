@@ -116,7 +116,8 @@ const BoardAudio = (() => {
   function scheduleAmbience() {
     later(() => {
       const roll = Math.random();
-      if (roll < 0.4) whisper();
+      if (roll < 0.25) whisper();
+      else if (roll < 0.45) circle();
       else if (roll < 0.6) play("breath", PLACES.behind, 0.35, { slice: 2 });
       else if (roll < 0.8) play("footsteps-wood", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.3, { slice: 3 });
       else play("groans", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.35);
@@ -218,6 +219,66 @@ const BoardAudio = (() => {
     osc.stop(now + 0.14);
   }
 
+  // A low pulse in the ear that gets louder as the planchette nears the letter.
+  function pulse(near) {
+    if (!ctx || muted) return;
+    const now = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(70 + near * 40, now);
+    o.frequency.exponentialRampToValueAtTime(45, now + 0.18);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.03 + near * 0.16, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    o.connect(g);
+    g.connect(master);
+    o.start(now);
+    o.stop(now + 0.25);
+  }
+
+  // Something circles the listener: a whisper or a breath that starts behind
+  // one ear and moves slowly around the head.
+  async function circle(name) {
+    if (!ctx || muted) return;
+    const clip = name || (Math.random() < 0.6 ? "whispers" : "breath");
+    try {
+      const buffer = await load(clip);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const g = ctx.createGain();
+      g.gain.value = clip === "whispers" ? 0.55 : 0.4;
+      const p = panner(0, 0, 0.5);
+      src.connect(g);
+      g.connect(p);
+      p.connect(whisperGain);
+      const dur = Math.min(buffer.duration, 3.5 + Math.random() * 2);
+      const start = Math.random() * Math.PI * 2;
+      const sweep = (Math.random() < 0.5 ? 1 : -1) * Math.PI * (1.2 + Math.random() * 0.6);
+      const radius = 0.35 + Math.random() * 0.4;
+      const t0 = ctx.currentTime;
+      const offset = Math.random() * Math.max(0, buffer.duration - dur);
+      src.start(t0, offset, dur);
+      const id = setInterval(() => {
+        const k = Math.min(1, (ctx.currentTime - t0) / dur);
+        const a = start + sweep * k;
+        // Angle 0 is directly behind the head.
+        const x = Math.sin(a) * radius;
+        const z = Math.cos(a) * radius;
+        if (p.positionX) {
+          p.positionX.setTargetAtTime(x, ctx.currentTime, 0.05);
+          p.positionZ.setTargetAtTime(z, ctx.currentTime, 0.05);
+          p.positionY.setTargetAtTime(0.05 + Math.sin(k * Math.PI) * 0.1, ctx.currentTime, 0.05);
+        } else {
+          p.setPosition(x, 0.05, z);
+        }
+        if (k >= 1) clearInterval(id);
+      }, 40);
+    } catch (err) {
+      // Ignore.
+    }
+  }
+
   // A low swell when the board hears the question.
   function swell() {
     if (!ctx || muted) return;
@@ -260,5 +321,5 @@ const BoardAudio = (() => {
     if (master) master.gain.setTargetAtTime(muted ? 0 : 0.85, ctx.currentTime, 0.1);
   }
 
-  return { start, slide, tick, swell, duck, close, reopen, whisper, play, setMuted };
+  return { start, slide, tick, pulse, circle, swell, duck, close, reopen, whisper, play, setMuted };
 })();

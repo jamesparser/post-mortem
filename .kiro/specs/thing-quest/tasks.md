@@ -75,3 +75,11 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [ ] 9.3 Headset pass with hands only. Pinch on menu, reach to find.
 - [ ] 9.4 Frame rate check on Quest 3 with the global mesh loaded.
 - [ ] 9.5 Capture footage for the demo video.
+
+## 10. Spirit board in the house
+
+- [x] 10.1 Menu entry with two modes: Talk to the dead, Your dead device.
+- [x] 10.2 Board on a real table or a pedestal, planchette with glass window and felt feet.
+- [x] 10.3 Guided letters by controller haptics, tremble for hands, auto move fallback.
+- [x] 10.4 Circling whispers, breath, footsteps, and a figure at the side of the eye.
+- [x] 10.5 Questions out loud where the browser can listen, otherwise it answers a question you did not ask.

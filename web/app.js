@@ -210,7 +210,7 @@ async function runService() {
   await delay(1800);
   await lowerAndListen();
   Sound.settle();
-  linkBoard();
+  rememberDeparted();
   show(els.panelDone);
   state.running = false;
   els.btnBegin.disabled = false;
@@ -248,17 +248,13 @@ async function lowerAndListen() {
   await delay(2600);
 }
 
-// The board opens on the departed: name and cause of death travel with the link.
-function linkBoard() {
-  const link = document.getElementById("link-board");
-  if (!link) return;
-  const params = new URLSearchParams({ mode: "device", device: state.name });
-  if (state.condition) params.set("condition", state.condition);
-  link.href = "ouija.html?" + params.toString();
+// Remember the departed, so the spirit board can reach it if the visitor
+// chooses to go there from the gate.
+function rememberDeparted() {
   try {
     sessionStorage.setItem("pm-departed", JSON.stringify({ name: state.name, condition: state.condition }));
   } catch (err) {
-    // Storage blocked. The link still carries it.
+    // Storage blocked. The board will ask for the name instead.
   }
 }
 

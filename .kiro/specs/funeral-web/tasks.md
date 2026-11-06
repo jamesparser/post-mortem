@@ -60,3 +60,8 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 8.2 README quickstart: install, env, run.
 - [x] 8.3 Deploy to a public URL that stays up through judging.
 - [ ] 8.4 Manual pass on a clean browser and a phone.
+
+## 9. The gate
+
+- [x] 9.1 The site opens on a gate with three doors: the burial, the spirit board, Thing. The burial lives at `burial.html`.
+- [x] 9.2 The burial done screen offers Bury another and Back to the gate. No automatic jump to the board.

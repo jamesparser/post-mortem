@@ -133,7 +133,7 @@ body {
 
 .spirit {
   position: absolute;
-  width: 140px;
+  width: 200px;
   height: auto;
   opacity: 0;
   transition: opacity 900ms ease;

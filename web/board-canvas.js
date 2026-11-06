@@ -1,4 +1,4 @@
-// The talking board. Painted once into an offscreen canvas: aged wood, worn
+// The spirit board. Painted once into an offscreen canvas: aged wood, worn
 // varnish, letters in ink that has faded unevenly. The planchette is a wooden
 // heart with a glass window that magnifies the letter beneath it.
 

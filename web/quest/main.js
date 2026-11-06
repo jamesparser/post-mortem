@@ -9,6 +9,7 @@ import { ThingMover } from "./mover.js";
 import { AmbientMode } from "./ambient.js";
 import { HideSeekMode, ROUND_LENGTHS } from "./hideseek.js";
 import { BurialMode } from "./burial.js";
+import { SpiritBoardMode } from "./board.js";
 import { MenuPanel, Caption, WristButton, makeRay } from "./ui.js";
 
 const JOINTS = ["index-finger-tip", "middle-finger-tip", "thumb-tip", "wrist", "middle-finger-metacarpal"];
@@ -225,12 +226,23 @@ export class App {
       { label: "Let him roam", note: "He lives here now", action: () => this.startMode("ambient") },
       { label: "Hide and seek", note: "He hides. You hunt.", action: () => this.showRoundMenu() },
       { label: "The burial", note: "Lay a real device to rest", action: () => this.startMode("burial") },
+      { label: "The spirit board", note: "On your table. Feel for the letters.", action: () => this.showBoardMenu() },
     ];
     if (this.session && this.session.initiateRoomCapture && !this.room.hasScan) {
       items.push({ label: "Map this room", note: "So he knows where to hide", action: () => this.mapRoom() });
     }
     items.push({ label: "Leave the house", action: () => this.leave() });
     this.menu.setItems("The house", "Press the brass button on your wrist to return here.", items);
+    this.menu.showAt(this.camera);
+  }
+
+  showBoardMenu() {
+    const items = [
+      { label: "Talk to the dead", note: "Ask anything, out loud", action: () => this.startMode("board", "dead") },
+      { label: "Your dead device", note: "The last thing you buried", action: () => this.startMode("board", "device") },
+      { label: "Back", action: () => this.showMainMenu() },
+    ];
+    this.menu.setItems("The spirit board", "Rest a hand or a controller on the planchette. It will not show you the letter.", items);
     this.menu.showAt(this.camera);
   }
 
@@ -261,6 +273,7 @@ export class App {
     const back = () => this.startMode("ambient");
     if (name === "hideseek") this.mode = new HideSeekMode(this.ctx, arg, back);
     else if (name === "burial") this.mode = new BurialMode(this.ctx, back);
+    else if (name === "board") this.mode = new SpiritBoardMode(this.ctx, arg, back);
     else this.mode = new AmbientMode(this.ctx);
     this.modeName = name;
     this.mode.enter();
@@ -299,9 +312,9 @@ export class App {
   }
 
   updateLight() {
-    const focus = this.modeName === "burial" && this.mode && this.mode.casket
-      ? this.mode.casket.getWorldPosition(new THREE.Vector3())
-      : this.mover.position;
+    let focus = this.mover.position;
+    if (this.modeName === "burial" && this.mode && this.mode.casket) focus = this.mode.casket.getWorldPosition(new THREE.Vector3());
+    if (this.modeName === "board" && this.mode && this.mode.root) focus = this.mode.root.getWorldPosition(new THREE.Vector3());
     this.key.target.position.copy(focus);
     this.key.position.copy(focus).add(new THREE.Vector3(0.7, 2.4, 0.5));
     this.key.target.updateMatrixWorld();

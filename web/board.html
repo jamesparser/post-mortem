@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>POST-Mortem. The board.</title>
-  <meta name="description" content="A talking board. Ask the dead, or ask the device you just buried." />
-  <link rel="stylesheet" href="ouija.css" />
+  <title>POST-Mortem. The spirit board.</title>
+  <meta name="description" content="A spirit board. Ask the dead, or ask the device you buried." />
+  <link rel="stylesheet" href="board.css" />
 </head>
 <body>
   <div id="room">
@@ -31,7 +31,7 @@
     </form>
 
     <div id="board-wrap">
-      <canvas id="board" aria-label="A talking board. The planchette spells the answer."></canvas>
+      <canvas id="board" aria-label="A spirit board. The planchette spells the answer."></canvas>
     </div>
     <div id="caption" aria-live="polite"></div>
     <div id="whisper-layer" aria-hidden="true"></div>
@@ -45,7 +45,7 @@
         <button id="btn-mic" class="ghost" type="button">Use my voice</button>
         <button id="btn-goodbye" class="ghost" type="button">Good bye</button>
         <button id="btn-mute" class="ghost" type="button">Mute</button>
-        <a class="ghost link" href="/">The funeral</a>
+        <a class="ghost link" href="/">The gate</a>
       </div>
       <p id="hint">Headphones. Rest a finger on the planchette if you dare.</p>
     </div>
@@ -56,9 +56,9 @@
     </div>
   </div>
 
-  <script src="ouija-board.js"></script>
-  <script src="ouija-audio.js"></script>
-  <script src="ouija-spirit.js"></script>
-  <script src="ouija.js"></script>
+  <script src="board-canvas.js"></script>
+  <script src="board-audio.js"></script>
+  <script src="board-spirit.js"></script>
+  <script src="board.js"></script>
 </body>
 </html>

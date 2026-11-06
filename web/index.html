@@ -4,65 +4,47 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>POST-Mortem</title>
-  <meta name="description" content="A proper funeral for dead devices." />
-  <link rel="stylesheet" href="style.css" />
+  <meta name="description" content="A proper funeral for dead devices. A spirit board. And Thing, loose in your house." />
+  <link rel="stylesheet" href="gate.css" />
 </head>
 <body>
-  <div id="scene">
-    <canvas id="petals" aria-hidden="true"></canvas>
+  <main id="gate">
+    <p class="kicker">POST-Mortem</p>
+    <h1>Something has died in this house.</h1>
+    <p class="lead">Choose a door.</p>
 
-    <header class="frame">
-      <p class="kicker">A service in memory of</p>
-      <h1 id="device-name">your device</h1>
-    </header>
+    <div class="doors">
+      <a class="door" href="burial.html">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <path d="M46 14 L74 14 L88 46 L80 106 L40 106 L32 46 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M60 36 L60 66 M50 46 L70 46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="title">The burial</span>
+        <span class="desc">Name a dead device, or show it to the camera. A priest says a few words. Then the ground takes it.</span>
+        <span class="go">Begin the service</span>
+      </a>
 
-    <main id="stage">
-      <section id="panel-name" class="panel">
-        <p class="lead">Tell us what died.</p>
-        <label class="field">
-          <span class="label">The departed</span>
-          <input id="input-name" type="text" maxlength="80"
-                 placeholder="iPhone 12 with a cracked screen" autocomplete="off" />
-        </label>
-        <div class="row">
-          <button id="btn-photo" class="ghost" type="button">Use a photo</button>
-          <button id="btn-begin" class="primary" type="button">Begin the service</button>
-        </div>
-        <p id="photo-note" class="note" hidden></p>
-        <input id="input-photo" type="file" accept="image/*" capture="environment" hidden />
-      </section>
+      <a class="door" href="board.html">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <path d="M60 18 C70 34 92 50 90 74 C88 96 70 100 60 88 C50 100 32 96 30 74 C28 50 50 34 60 18 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+          <circle cx="60" cy="64" r="11" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        </svg>
+        <span class="title">The spirit board</span>
+        <span class="desc">Ask the dead anything. Or ask the device you buried, once more, before it leaves for good. Headphones.</span>
+        <span class="go">Light the board</span>
+      </a>
 
-      <section id="panel-service" class="panel" hidden>
-        <div id="casket" aria-hidden="true">
-          <div class="lid"></div>
-          <div class="box"></div>
-          <div class="plate"><span id="plate-name">the departed</span></div>
-        </div>
-        <div id="grave" aria-hidden="true" hidden></div>
-        <p id="eulogy" class="eulogy"></p>
-        <div class="row">
-          <button id="btn-replay" class="ghost" type="button">Replay</button>
-        </div>
-      </section>
+      <a class="door" href="quest/">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <path d="M34 92 C30 80 34 70 40 66 L42 44 C42 40 48 40 48 44 L48 62 L50 34 C50 29 57 29 57 34 L57 60 L60 30 C60 25 67 25 67 30 L66 60 L70 38 C70 33 77 34 76 39 L73 70 C80 64 86 62 88 66 C90 70 80 80 74 90 C70 98 62 102 52 102 C42 102 36 98 34 92 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        </svg>
+        <span class="title">Thing</span>
+        <span class="desc">A hand that walks on its fingers, loose in your real house. Hide and seek, the burial, and the board, in passthrough on a Quest 3.</span>
+        <span class="go">Open the door</span>
+      </a>
+    </div>
 
-      <section id="panel-done" class="panel" hidden>
-        <p class="lead">Rest now.</p>
-        <p class="closing">He will not be asked to update one more time.</p>
-        <div class="row">
-          <button id="btn-again" class="primary" type="button">Bury another</button>
-          <a id="link-board" class="ghost link" href="ouija.html?mode=device">Ask the board</a>
-        </div>
-        <p class="note">On a Quest 3? Open this page in the headset browser and visit <a href="quest/">the haunting</a>.</p>
-      </section>
-    </main>
-
-    <footer class="frame">
-      <p class="kicker">POST-Mortem</p>
-      <button id="btn-mute" class="ghost" type="button">Mute</button>
-    </footer>
-  </div>
-
-  <script src="sound.js"></script>
-  <script src="app.js"></script>
+    <p class="note">No account. No install. The device stays dead.</p>
+  </main>
 </body>
 </html>

@@ -35,6 +35,7 @@
     locked: false,
     target: null,
     pointerTarget: null,
+    guide: null,
     handsOn: false,
     lastInteraction: performance.now(),
     movedAlone: false,
@@ -53,7 +54,17 @@
   function loop(now) {
     const dt = Math.min(0.033, (now - last) / 1000);
     last = now;
-    const target = state.handsOn && !state.busy && state.pointerTarget ? state.pointerTarget : state.target;
+    let target = state.target;
+    if (state.handsOn && state.pointerTarget) {
+      target = state.pointerTarget;
+      // While it is spelling, it leans on your hand toward the letter it wants.
+      if (state.busy && state.guide) {
+        target = {
+          x: target.x + (state.guide.x - target.x) * 0.1,
+          y: target.y + (state.guide.y - target.y) * 0.1,
+        };
+      }
+    }
     let speed = 0;
     if (target) {
       const t = performance.now() / 1000;
@@ -91,9 +102,52 @@
     }
   }
 
+  // With a finger on the planchette, the visitor moves it. The board does not
+  // say which letter it wants. It tells you by feel: the phone buzzes and a low
+  // pulse in the ear beats faster and harder the closer you get.
+  async function guided(c) {
+    state.guide = c;
+    const start = performance.now();
+    let nextPulse = 0;
+    const p = Board.planchette;
+    const reach = Math.max(Board.size().W, Board.size().H) * 0.6;
+    while (state.handsOn && performance.now() - start < 9000) {
+      await sleep(30);
+      const d = Math.hypot(c.x - p.x, c.y - p.y);
+      if (d < 14) break;
+      const near = Math.max(0, 1 - d / reach);
+      const now = performance.now();
+      if (now > nextPulse) {
+        BoardAudio.pulse(near);
+        try {
+          if (!state.muted && navigator.vibrate) navigator.vibrate(Math.round(8 + near * 45));
+        } catch (err) {
+          // Optional.
+        }
+        nextPulse = now + 720 - near * 600;
+      }
+    }
+    state.guide = null;
+    const arrived = Math.hypot(c.x - p.x, c.y - p.y) < 14;
+    if (arrived) {
+      try {
+        if (!state.muted && navigator.vibrate) navigator.vibrate(80);
+      } catch (err) {
+        // Optional.
+      }
+    }
+    return arrived;
+  }
+
   async function landOn(key) {
     const c = centerOf(key);
     if (!c) return;
+    if (state.handsOn && (await guided(c))) {
+      Board.mark(key);
+      BoardAudio.tick((c.x / Board.size().W - 0.5) * 1.4);
+      return;
+    }
+    // Hands off, or the visitor lost the trail: it moves on its own.
     state.target = c;
     await settle();
     Board.mark(key);
@@ -146,7 +200,7 @@
         continue;
       }
       n += 1;
-      if (falseAt.has(n) && !t.word) await falseStart(t.key);
+      if (falseAt.has(n) && !t.word && !state.handsOn) await falseStart(t.key);
       await landOn(t.key);
       shown += (t.word ? t.key : t.key + " ");
       caption(shown.trim());
@@ -191,6 +245,7 @@
     state.answered += 1;
     els.question.value = "";
     if (Math.random() < 0.5) Spirits.flash();
+    if (Math.random() < 0.45) BoardAudio.circle();
 
     if (state.mode === "device" && state.turn >= state.maxTurns) {
       await sleep(1400);
@@ -360,6 +415,7 @@
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
+  let hinted = false;
   els.canvas.addEventListener("pointerdown", (e) => {
     BoardAudio.start();
     state.lastInteraction = performance.now();
@@ -368,6 +424,10 @@
     if (Math.hypot(p.x - pl.x, p.y - pl.y) > 70) return;
     state.handsOn = true;
     pl.hands = true;
+    if (!hinted) {
+      hinted = true;
+      document.getElementById("hint").textContent = "Keep your finger on it. It will not tell you the letter. Feel for it, and listen.";
+    }
     els.canvas.setPointerCapture(e.pointerId);
     state.pointerTarget = p;
     if (!state.target) state.target = { x: pl.x, y: pl.y };

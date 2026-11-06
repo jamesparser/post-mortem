@@ -59,10 +59,10 @@ Sequenced checklist. Keep status in sync.
 
 ## 9. Quest variant
 
-- [ ] 9.1 Board anchored to a real table in passthrough.
-- [ ] 9.2 Hand tracking pull with tremor on the planchette.
-- [ ] 9.3 Spatial audio whispers behind the head and beside the ears.
-- [ ] 9.4 Translucent spirits at the side that fade when looked at.
+- [x] 9.1 Board on the nearest real table within reach, or on a small pedestal table if there is none.
+- [x] 9.2 Hand or controller resting on the planchette moves it. Controllers buzz harder and faster near the hidden letter, a sharp pulse on arrival. Hands get a trembling planchette instead.
+- [x] 9.3 Whispers and breath that start behind an ear and travel around the head. Footsteps behind, groans far off.
+- [x] 9.4 A pale figure at 70 to 110 degrees off the gaze that fades the moment you turn toward it.
 
 ## 10. Ship
 
@@ -77,3 +77,11 @@ Sequenced checklist. Keep status in sync.
 - [x] 11.3 Two to four answers, colder each time, then GOOD BYE and the board locks until it is lit again.
 - [x] 11.4 Offline answers for both modes when no model key is set.
 - [x] 11.5 Phones vibrate briefly at each letter while a finger rests on the planchette.
+
+## 12. Guided letters and the name
+
+- [x] 12.1 The board never shows the letter it wants. With a finger on the planchette (web) or a hand or controller on it (Quest), the visitor moves it and feels for the letter: phone or controller pulses, and a low pulse in the ear, grow faster and stronger with proximity. Let go and it moves on its own.
+- [x] 12.2 Whispers that circle the head on the web as well, with HRTF panning.
+- [x] 12.3 Peripheral figures painted with a bowed head, hollow eyes, hair, and a shroud, half out of frame, flickering.
+- [x] 12.4 User facing name is the spirit board. The word Ouija is a trademark and does not appear in the app.
+- [x] 12.5 No automatic jump from the burial to the board. The gate lets the visitor choose.

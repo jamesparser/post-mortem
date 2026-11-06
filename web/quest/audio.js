@@ -17,6 +17,7 @@ const FILES = [
   "footsteps-wood",
   "chains",
   "heartbeat",
+  "whispers",
 ];
 
 const forward = new THREE.Vector3();
