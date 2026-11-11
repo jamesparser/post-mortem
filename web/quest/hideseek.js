@@ -1,5 +1,6 @@
 // Hide and seek. Thing gets 30 seconds to hide in the real room while the
-// player covers their eyes. Then the hunt. He never moves once hidden.
+// player covers their eyes: he hides, you seek. Then the hunt. He never moves
+// once hidden. If time runs out, he gives up hiding and jumps on you.
 
 import * as THREE from "three";
 
@@ -61,9 +62,9 @@ export class HideSeekMode {
     mover.place(p, Math.atan2(-fwd.x, -fwd.z));
     mover.restPose = "wave";
     audio.oneShot("scuffle", p, 0.5);
-    caption.show("He wants to play.", 2.5);
+    caption.show("He wants to play hide and seek. He hides. You seek.", 3.5, true);
     this.state = "intro";
-    this.timer = 2.8;
+    this.timer = 3.8;
   }
 
   exit() {
@@ -140,8 +141,7 @@ export class HideSeekMode {
         this.state = "hiding";
         this.timer = this.length.hide;
         this.arrived = false;
-        caption.show("30 seconds. Cover your eyes.", 4);
-        setTimeout(() => this.state === "hiding" && caption.show("Hands over the headset, or look at the floor.", 4, true), 4200);
+        this.lastShownSecond = -1;
         this.sendToSpot();
       }
       return;
@@ -153,17 +153,25 @@ export class HideSeekMode {
         this.peeking = true;
         mover.paused = true;
         audio.oneShot("peek-tone", null, 0.35);
-        caption.show("No peeking.", 2);
+        this.lastShownSecond = -1;
       } else if (covering && this.peeking) {
         this.peeking = false;
         mover.paused = false;
         // He saw you see him. He goes somewhere else.
         this.sendToSpot();
       }
+      // A full count, every second, so you always know who is doing what.
       const s = Math.ceil(this.timer);
-      if (s !== this.lastShownSecond && (s === 20 || s === 10 || s <= 3) && s > 0) {
+      if (s !== this.lastShownSecond && s > 0) {
         this.lastShownSecond = s;
-        caption.show(String(s), 1, true);
+        caption.show(
+          this.peeking
+            ? s + "   No peeking. He froze. Cover your eyes."
+            : s + "   Thing is hiding. Cover your eyes or look at the floor.",
+          1.2,
+          true
+        );
+        audio.oneShot("nails-tap", null, s <= 5 ? 0.22 : 0.1, 1.8);
       }
       if (this.timer <= 0) {
         if (!this.arrived && this.spot) {
@@ -184,9 +192,13 @@ export class HideSeekMode {
         audio.oneShot("nails-tap", mover.position, 0.12, 0.7);
       }
       const remaining = Math.ceil(this.length.hunt - this.huntTime);
-      if (remaining !== this.lastShownSecond && (remaining === 30 || remaining === 10)) {
+      if (remaining !== this.lastShownSecond && remaining > 0 && (remaining % 10 === 0 || remaining <= 10)) {
         this.lastShownSecond = remaining;
-        caption.show(remaining + " seconds.", 2, true);
+        caption.show(
+          remaining <= 10 ? remaining + "   Find him." : "You seek. Walk around and touch him. " + remaining + " seconds left.",
+          remaining <= 10 ? 1.2 : 3,
+          true
+        );
       }
       if (this.found()) return this.onFound();
       if (this.huntTime >= this.length.hunt) return this.onTimeout();
@@ -223,9 +235,9 @@ export class HideSeekMode {
     const { audio, caption, mover } = this.ctx;
     this.state = "hunt";
     this.huntTime = 0;
-    this.lastShownSecond = -1;
+    this.lastShownSecond = this.length.hunt;
     audio.oneShot("chime", null, 0.4);
-    caption.show("Find him.", 3);
+    caption.show("Your turn. He is hidden somewhere in your room. Find him and touch him. " + this.length.hunt + " seconds.", 4.5, true);
     this.breath = audio.source("breath", { loop: true, refDistance: 0.35 });
     if (this.breath) {
       this.breath.setPosition(mover.position);
@@ -269,7 +281,7 @@ export class HideSeekMode {
       audio.oneShot("scuffle", mover.position, 0.6);
       haptics(0.7, 250);
     });
-    caption.show("Time. He found you.", 3.5);
+    caption.show("Time is up. You did not find him. So he comes to you.", 3.5, true);
     this.stats.rounds += 1;
     saveStats(this.stats);
   }

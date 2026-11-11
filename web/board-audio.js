@@ -105,7 +105,78 @@ const BoardAudio = (() => {
 
   function whisper(place) {
     const where = PLACES[place || ["left", "right", "behind"][Math.floor(Math.random() * 3)]];
-    play("whispers", where, 0.55, { slice: 1.6 + Math.random() * 1.6, bus: whisperGain, rate: 0.92 + Math.random() * 0.12 });
+    play("whispers", where, 0.8, { slice: 1.6 + Math.random() * 1.6, bus: whisperGain, rate: 0.92 + Math.random() * 0.12 });
+  }
+
+  // Real spoken lines, from Deepgram, slowed and wet with a stone reverb.
+  const LINES = ["Behind you.", "It is cold here.", "Do not turn around.", "We can see you.", "Stay with us.", "Who is that beside you?", "Let me in."];
+  const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-orpheus-en"];
+  const spoken = {};
+  let verb = null;
+
+  function reverb() {
+    if (verb) return verb;
+    const n = Math.floor(ctx.sampleRate * 3);
+    const ir = ctx.createBuffer(2, n, ctx.sampleRate);
+    for (let c = 0; c < 2; c += 1) {
+      const d = ir.getChannelData(c);
+      for (let i = 0; i < n; i += 1) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6);
+    }
+    verb = ctx.createConvolver();
+    verb.buffer = ir;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.35;
+    verb.connect(wet);
+    wet.connect(whisperGain);
+    return verb;
+  }
+
+  async function speak(text, place, voice) {
+    if (!ctx || muted) return false;
+    const line = text || LINES[Math.floor(Math.random() * LINES.length)];
+    const v = voice || VOICES[Math.floor(Math.random() * VOICES.length)];
+    const key = v + ":" + line;
+    try {
+      if (!spoken[key]) {
+        spoken[key] = fetch("/api/speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: line, voice: v }),
+        })
+          .then((r) => {
+            if (!r.ok) throw new Error("speak " + r.status);
+            return r.arrayBuffer();
+          })
+          .then((data) => new Promise((ok, fail) => ctx.decodeAudioData(data, ok, fail)));
+      }
+      const buffer = await spoken[key];
+      const where = PLACES[place || ["left", "right", "behind"][Math.floor(Math.random() * 3)]];
+      const done = [];
+      for (const [delay, vol, detune] of [[0, 1.1, 1], [0.035, 0.35, 0.97]]) {
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = 0.82 * detune;
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 3200;
+        const g = ctx.createGain();
+        g.gain.value = vol;
+        src.connect(lp);
+        lp.connect(g);
+        const p = panner(where[0], where[1], where[2]);
+        g.connect(p);
+        p.connect(whisperGain);
+        g.connect(reverb());
+        src.start(ctx.currentTime + delay);
+        done.push(new Promise((r) => (src.onended = r)));
+      }
+      await done[0];
+      return true;
+    } catch (err) {
+      delete spoken[key];
+      whisper(place);
+      return false;
+    }
   }
 
   function later(fn, min, max) {
@@ -116,13 +187,14 @@ const BoardAudio = (() => {
   function scheduleAmbience() {
     later(() => {
       const roll = Math.random();
-      if (roll < 0.25) whisper();
-      else if (roll < 0.45) circle();
-      else if (roll < 0.6) play("breath", PLACES.behind, 0.35, { slice: 2 });
-      else if (roll < 0.8) play("footsteps-wood", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.3, { slice: 3 });
-      else play("groans", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.35);
+      if (roll < 0.3) speak();
+      else if (roll < 0.45) whisper();
+      else if (roll < 0.6) circle();
+      else if (roll < 0.72) play("breath", PLACES.behind, 0.55, { slice: 2 });
+      else if (roll < 0.88) play("footsteps-wood", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.5, { slice: 3 });
+      else play("groans", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.5);
       scheduleAmbience();
-    }, 9000, 22000);
+    }, 7000, 15000);
   }
 
   function roomTone() {
@@ -321,5 +393,5 @@ const BoardAudio = (() => {
     if (master) master.gain.setTargetAtTime(muted ? 0 : 0.85, ctx.currentTime, 0.1);
   }
 
-  return { start, slide, tick, pulse, circle, swell, duck, close, reopen, whisper, play, setMuted };
+  return { start, slide, tick, pulse, circle, swell, duck, close, reopen, whisper, speak, play, setMuted };
 })();

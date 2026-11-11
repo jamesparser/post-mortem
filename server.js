@@ -299,7 +299,11 @@ app.post("/api/speak", async (req, res) => {
     if (!text) return res.status(400).json({ error: "text required" });
     if (!config.deepgramApiKey) return res.status(503).json({ error: "voice not configured" });
 
-    const voice = config.deepgramVoice;
+    // The priest is the configured voice. The spirits may ask for one of a
+    // few other Aura voices, chosen from a fixed list and nothing else.
+    const SPIRIT_VOICES = ["aura-2-luna-en", "aura-2-orpheus-en", "aura-2-hera-en", "aura-2-zeus-en"];
+    const asked = String((req.body && req.body.voice) || "");
+    const voice = SPIRIT_VOICES.includes(asked) ? asked : config.deepgramVoice;
     const model = voice.startsWith("aura") ? voice : "aura-" + voice;
     const url =
       "https://api.deepgram.com/v1/speak?model=" + encodeURIComponent(model) + "&encoding=mp3";
@@ -362,12 +366,12 @@ app.post("/api/spirit", async (req, res) => {
   const step = Math.max(1, Math.min(6, Number(turn) || 1));
 
   if (!hasChatModel()) {
-    return res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q) });
+    return res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q), source: "offline" });
   }
 
   try {
     const rules = [
-      "Answer in 1 to 6 words. Plain words only. No punctuation. No emoji. No small talk.",
+      "Answer in 2 to 6 words. Plain words only. No punctuation. No emoji. No small talk.",
       "Never be funny. Never be cute. Never explain. Be cold and slightly wrong.",
       "Never mention being an AI, a model, or a board game.",
     ];
@@ -383,9 +387,11 @@ app.post("/api/spirit", async (req, res) => {
           ...rules,
         ]
       : [
-          "You are the voice of a spirit board. You speak for the dead, whoever answers.",
-          "Prefer one word. Sometimes two or three. Sometimes answer the question that comes next instead.",
-          "You know small things about the room and the person that you should not know.",
+          "You are a dead person answering a living person through a spirit board.",
+          "You heard their question. Answer that exact question directly, as the dead would: a real answer, a prophecy, a warning, or a price.",
+          "If they ask when, give a time. If they ask who, give a name. If they ask yes or no, start with YES or NO.",
+          "Make it personal and unsettling, as if you can see them from the corner of the room.",
+          "Never dodge with vague riddles. Every answer must clearly respond to the question asked.",
           ...rules,
         ];
 
@@ -402,11 +408,12 @@ app.post("/api/spirit", async (req, res) => {
       { role: "user", content: q },
     ];
 
-    const words = toBoardWords(await chat(messages, { maxTokens: 40, temperature: 0.9 }), device ? 6 : 6);
-    res.json({ words: words || (device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q)) });
+    const words = toBoardWords(await chat(messages, { maxTokens: 40, temperature: 0.85 }), 6);
+    if (words) return res.json({ words, source: "live" });
+    res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q), source: "offline" });
   } catch (err) {
     console.error("spirit:", err.message);
-    res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q) });
+    res.json({ words: device ? offlineDevice(device, cause, step, Boolean(final)) : offlineDead(q), source: "offline" });
   }
 });
 

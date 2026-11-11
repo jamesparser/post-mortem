@@ -244,7 +244,9 @@
     state.history.push({ q: question, a: spelled.replace(/\s+/g, " ") });
     state.answered += 1;
     els.question.value = "";
-    if (Math.random() < 0.5) Spirits.flash();
+    // Then it says the answer, low, from just behind you.
+    await BoardAudio.speak(String(words).toLowerCase(), "behind");
+    if (Math.random() < 0.6) Spirits.flash();
     if (Math.random() < 0.45) BoardAudio.circle();
 
     if (state.mode === "device" && state.turn >= state.maxTurns) {

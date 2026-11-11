@@ -4,6 +4,7 @@
 // enough he comes for your shoulder.
 
 import * as THREE from "three";
+import { Ghost } from "./ghost.js";
 
 const LOOK_ANGLE = 0.26;
 const SCARE_COOLDOWN = 75;
@@ -31,10 +32,13 @@ export class AmbientMode {
     this.state = "listen";
     this.timer = 1.5;
     room.setStart(camera.getWorldPosition(new THREE.Vector3()));
+    // Thing is not the only one in the house.
+    this.ghost = new Ghost(this.ctx, { firstDelay: 45, minGap: 60, maxGap: 110 });
   }
 
   exit() {
     this.ctx.mover.stop();
+    if (this.ghost) this.ghost.dispose();
   }
 
   // A floor point behind the viewer, so he is never seen arriving.
@@ -77,6 +81,7 @@ export class AmbientMode {
   }
 
   update(dt) {
+    if (this.ghost) this.ghost.update(dt);
     const { mover, room, camera, audio } = this.ctx;
     this.clock += dt;
     this.timer -= dt;

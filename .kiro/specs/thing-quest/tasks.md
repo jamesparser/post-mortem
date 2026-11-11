@@ -94,3 +94,14 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 11.6 Spirit board needs both hands: pinch the planchette with both hands, or hold both triggers on it. It never moves without them.
 - [x] 11.7 It pulls: while spelling, the planchette leads the hands by up to five centimetres toward the hidden letter. Haptics quicken near it.
 - [x] 11.8 Questions out loud: the headset microphone records a few seconds and the server transcribes it with Deepgram. Asked for on the landing page before entering.
+
+## 12. Fixes from the second headset pass
+
+- [x] 12.1 Hide and seek states the roles up front: he hides, you seek. A full count from 30 to 1 during the hide, one caption every second.
+- [x] 12.2 The hunt counts every ten seconds, then every second for the last ten. Timeout reads: Time is up. You did not find him. So he comes to you.
+- [x] 12.3 Unbounded reference space where the browser allows it, so you can walk the house. Landing page explains Roomscale or boundary off.
+- [x] 12.4 Carry by ray: point at the casket or the board and hold the grip. It rides the end of the ray. Thumbstick on that hand pushes it away or pulls it closer.
+- [x] 12.5 Burial: any trigger or pinch closes the lid once the departed is inside. The interior box is more forgiving.
+- [x] 12.6 Spirit board answers say plainly what you asked and what it answered, then a spirit voice speaks the answer from behind you.
+- [x] 12.7 Spoken spirit lines from Deepgram voices, slowed, low passed and doubled in a stone reverb, every seven to fourteen seconds on the board, never while the microphone is open.
+- [x] 12.8 Shared ghost module: a figure 35 to 50 degrees off the gaze, one metre or so away, inside the field of view. First at about 22 seconds on the board, about 45 seconds in Thing's house. Gone when you look at it.

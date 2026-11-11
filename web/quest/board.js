@@ -7,6 +7,7 @@
 
 import * as THREE from "three";
 import { woodTextures, woodMaterial } from "./skin.js";
+import { Ghost, whisper } from "./ghost.js";
 
 const BOARD = { w: 0.5, d: 0.33, t: 0.014 };
 const LETTER_ROW_1 = "ABCDEFGHIJKLM";
@@ -180,51 +181,6 @@ function pedestalTable(wood) {
 }
 
 // A figure for the side of the eye. Same language as the web board.
-function spiritTexture() {
-  const w = 256;
-  const h = 640;
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const g = c.getContext("2d");
-  const pale = (a) => "rgba(226,222,210," + a + ")";
-  const cx = w / 2;
-  g.filter = "blur(6px)";
-  let grad = g.createLinearGradient(0, h * 0.18, 0, h);
-  grad.addColorStop(0, pale(0.55));
-  grad.addColorStop(0.55, pale(0.22));
-  grad.addColorStop(1, pale(0));
-  g.fillStyle = grad;
-  g.beginPath();
-  g.moveTo(cx - 30, h * 0.2);
-  g.bezierCurveTo(cx - 82, h * 0.23, cx - 86, h * 0.36, cx - 76, h * 0.55);
-  g.bezierCurveTo(cx - 66, h * 0.8, cx - 46, h * 0.97, cx, h);
-  g.bezierCurveTo(cx + 46, h * 0.97, cx + 66, h * 0.8, cx + 76, h * 0.55);
-  g.bezierCurveTo(cx + 86, h * 0.36, cx + 82, h * 0.23, cx + 30, h * 0.2);
-  g.fill();
-  g.filter = "blur(4px)";
-  grad = g.createRadialGradient(cx, h * 0.12, 4, cx, h * 0.12, 48);
-  grad.addColorStop(0, pale(0.8));
-  grad.addColorStop(1, pale(0));
-  g.fillStyle = grad;
-  g.beginPath();
-  g.ellipse(cx, h * 0.12, 34, 44, 0.08, 0, Math.PI * 2);
-  g.fill();
-  g.filter = "blur(3px)";
-  g.fillStyle = "rgba(20,18,16,0.55)";
-  for (const s of [-1, 1]) {
-    g.beginPath();
-    g.ellipse(cx + s * 13, h * 0.115, 7, 9, 0, 0, Math.PI * 2);
-    g.fill();
-  }
-  g.beginPath();
-  g.ellipse(cx, h * 0.165, 6, 9, 0, 0, Math.PI * 2);
-  g.fill();
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 export class SpiritBoardMode {
   constructor(ctx, kind, onDone) {
     this.ctx = ctx;
@@ -251,20 +207,13 @@ export class SpiritBoardMode {
     this.glow.rotation.x = -Math.PI / 2;
     this.glow.position.y = BOARD.t / 2 + 0.001;
     this.board.add(this.glow);
-    this.spirit = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.62, 1.55),
-      new THREE.MeshBasicMaterial({ map: spiritTexture(), transparent: true, opacity: 0, depthWrite: false })
-    );
-    this.spirit.visible = false;
-    this.root.add(this.spirit);
     this.table = null;
     this.held = false;
     this.busy = false;
     this.turn = 0;
     this.maxTurns = 2 + Math.floor(Math.random() * 3);
     this.history = [];
-    this.lastSpirit = performance.now() - 25000;
-    this.nextAmbience = performance.now() + 6000;
+    this.nextAmbience = performance.now() + 5000;
     this.whisperers = [];
     this.locked = false;
   }
@@ -274,6 +223,7 @@ export class SpiritBoardMode {
     mover.hide();
     audio.bed("storm-bed", 0.05, 3);
     scene.add(this.root);
+    this.ghost = new Ghost(this.ctx, { firstDelay: 22, minGap: 35, maxGap: 55 });
     this.placeOnTable(camera, room);
     this.ctx.movable = this.root;
     this.ctx.movableReach = 0.45;
@@ -284,7 +234,7 @@ export class SpiritBoardMode {
     this.device = device;
     caption.show(
       (this.kind === "device" ? "It is " + device + ". " : "") +
-        "Put both hands on the planchette: pinch it, or hold both triggers. To move the board, squeeze a grip button beside it. Thumbstick raises or lowers it.",
+        "Put both hands on the planchette: pinch it, or hold both triggers. To carry the board, point at it and hold a grip button. Thumbstick raises or lowers it.",
       9,
       true
     );
@@ -293,6 +243,7 @@ export class SpiritBoardMode {
 
   exit() {
     this.ctx.scene.remove(this.root);
+    if (this.ghost) this.ghost.dispose();
     this.whisperers.forEach((w) => w.src.stop());
     this.whisperers = [];
     this.ctx.audio.bed("storm-bed", 0.12, 3);
@@ -371,14 +322,19 @@ export class SpiritBoardMode {
     let words = "NO";
     try {
       const res = await fetch("/api/spirit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      words = (await res.json()).words || "NO";
+      const data = await res.json();
+      words = data.words || "NO";
+      this.source = data.source;
     } catch (err) {
       words = "NOT NOW";
     }
     await this.sleep(900);
     const spelled = await this.spell(words);
     this.history.push({ q: question, a: spelled });
-    if (Math.random() < 0.5) this.showSpirit();
+    caption.show("You asked: " + question + ".   It answered: " + spelled, 6, true);
+    // Then it says it, from behind you.
+    await whisper(this.ctx, String(words).toLowerCase());
+    if (Math.random() < 0.6) this.showSpirit();
     if (this.kind === "device" && this.turn >= this.maxTurns) {
       await this.sleep(1500);
       await this.goTo("GOOD BYE");
@@ -403,7 +359,9 @@ export class SpiritBoardMode {
     const fallback = list[(this.history.length + Math.floor(Math.random() * 2)) % list.length];
     for (let attempt = 0; attempt < 2; attempt += 1) {
       caption.show(attempt ? "It did not hear you. Ask again, louder." : "Ask it a question. Out loud. Now.", 0, true);
+      this.listening = true;
       const text = await this.recordQuestion(5200);
+      this.listening = false;
       if (text) {
         caption.show("You asked: " + text, 3, true);
         await this.sleep(1800);
@@ -463,7 +421,6 @@ export class SpiritBoardMode {
       shown += "  ";
       await this.sleep(rand(900, 1500));
     }
-    setTimeout(() => this.ctx.caption.hide(), 2500);
     return shown.replace(/\s+/g, " ").trim();
   }
 
@@ -533,21 +490,9 @@ export class SpiritBoardMode {
     });
   }
 
-  // At the side of the eye, between 70 and 110 degrees off the gaze.
+  // A figure at the edge of sight, inside the field of view.
   showSpirit() {
-    const now = performance.now();
-    if (now - this.lastSpirit < 40000 || this.spirit.visible) return;
-    this.lastSpirit = now;
-    const { camera, room } = this.ctx;
-    const side = Math.random() < 0.5 ? 1 : -1;
-    const p = this.aroundHead(side * rand(1.2, 1.9), rand(1.3, 2));
-    this.root.worldToLocal(p);
-    this.spirit.position.set(p.x, room.floorY - this.root.position.y + 0.8, p.z);
-    this.spirit.rotation.set(0, 0, 0);
-    this.spirit.visible = true;
-    this.spirit.material.opacity = 0;
-    this.spiritLife = rand(2, 4);
-    this.circleWhisper("breath");
+    if (this.ghost) this.ghost.show();
   }
 
   update(dt) {
@@ -617,30 +562,16 @@ export class SpiritBoardMode {
 
     // Ambient presence: sounds behind and around, now and then.
     if (performance.now() > this.nextAmbience) {
-      this.nextAmbience = performance.now() + rand(9000, 20000);
+      this.nextAmbience = performance.now() + rand(7000, 14000);
       const roll = Math.random();
-      if (roll < 0.45) this.circleWhisper();
-      else if (roll < 0.7) this.ctx.audio.oneShot("footsteps-wood", this.aroundHead(rand(2.4, 3.9), rand(2.5, 4)), 0.35);
-      else if (roll < 0.85) this.ctx.audio.oneShot("breath", this.aroundHead(Math.PI, 0.25), 0.3);
-      else this.showSpirit();
+      // Never talk over the visitor while the microphone is open.
+      if (roll < 0.4 && !this.listening) whisper(this.ctx);
+      else if (roll < 0.65) this.circleWhisper();
+      else if (roll < 0.85) this.ctx.audio.oneShot("footsteps-wood", this.aroundHead(rand(2.4, 3.9), rand(2.5, 4)), 0.6);
+      else this.ctx.audio.oneShot("breath", this.aroundHead(Math.PI, 0.25), 0.6);
     }
 
-    // The spirit fades in at the side and is gone if you turn to it.
-    if (this.spirit.visible) {
-      const sw = this.spirit.getWorldPosition(new THREE.Vector3());
-      this.spirit.lookAt(head.x, sw.y, head.z);
-      const look = camera.getWorldDirection(new THREE.Vector3());
-      const to = sw.clone().sub(head).normalize();
-      const angle = look.angleTo(to);
-      this.spiritLife -= dt;
-      const m = this.spirit.material;
-      if (angle < 0.6 || this.spiritLife <= 0) {
-        m.opacity = Math.max(0, m.opacity - dt * 2.5);
-        if (m.opacity <= 0.01) this.spirit.visible = false;
-      } else {
-        m.opacity = Math.min(0.42, m.opacity + dt * 0.6) * (0.85 + Math.random() * 0.15);
-      }
-    }
+    if (this.ghost) this.ghost.update(dt);
   }
 
   sleep(ms) {

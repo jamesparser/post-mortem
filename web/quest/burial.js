@@ -251,7 +251,7 @@ export class BurialMode {
     this.program.mesh.visible = false;
     scene.add(this.program.mesh);
     audio.bed("storm-bed", 0.08, 3);
-    caption.show("Lay the departed inside. Squeeze the grip to move the casket, thumbstick to raise or lower it.", 8, true);
+    caption.show("Carry the casket: point at it and hold the grip button. Lay the departed inside, then pull a trigger or pinch to close the lid.", 10, true);
     this.ctx.movable = this.root;
     this.ctx.movableReach = 0.55;
     this.state = "place";
@@ -298,12 +298,13 @@ export class BurialMode {
   }
 
   update(dt) {
-    const { reachPoints, selectedNear, caption, audio, camera, haptics } = this.ctx;
+    const { reachPoints, selectedNear, anySelect, caption, audio, camera, haptics } = this.ctx;
     this.timer -= dt;
+    this.age = (this.age || 0) + dt;
     const casketCenter = this.casket.getWorldPosition(new THREE.Vector3());
 
     if (this.state === "place") {
-      const box = this.interiorBox();
+      const box = this.interiorBox().expandByScalar(0.06);
       const inside = reachPoints().some((p) => box.containsPoint(p));
       if (inside) {
         this.insideFor += dt;
@@ -313,8 +314,10 @@ export class BurialMode {
         this.insideFor = 0;
       }
       if (selectedNear(casketCenter, 0.35)) return this.closeLid();
+      // Any trigger or pinch, once the departed is in, closes the lid.
+      if (this.age > 2 && anySelect && anySelect()) return this.closeLid();
       if (this.timer <= 0) {
-        caption.show("Place it inside, then draw your hand away.", 5, true);
+        caption.show("When the departed is inside, pull a trigger or pinch to close the lid.", 5, true);
         this.timer = 30;
       }
     }

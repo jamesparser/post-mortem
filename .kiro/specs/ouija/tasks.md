@@ -85,3 +85,10 @@ Sequenced checklist. Keep status in sync.
 - [x] 12.3 Peripheral figures painted with a bowed head, hollow eyes, hair, and a shroud, half out of frame, flickering.
 - [x] 12.4 User facing name is the spirit board. The word Ouija is a trademark and does not appear in the app.
 - [x] 12.5 No automatic jump from the burial to the board. The gate lets the visitor choose.
+
+## 13. A live voice
+
+- [x] 13.1 Answers are written live by the model for the exact question asked: a time for when, a name for who, YES or NO first for yes or no questions. Two to six words, never a dodge. Canned lines only when no model is configured, and the response says which.
+- [x] 13.2 After it spells, a spirit voice speaks the answer from behind the visitor: a Deepgram Aura voice chosen from a fixed server allowlist, slowed, low passed, doubled, in reverb.
+- [x] 13.3 Spoken lines join the ambience (Behind you. Do not turn around.) with louder whispers, breath and footsteps.
+- [x] 13.4 Figures appear sooner and stronger on the web: the first within about half a minute, then every thirty five to sixty seconds.

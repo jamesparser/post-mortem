@@ -197,6 +197,69 @@ export class AudioEngine {
     return conv;
   }
 
+  // A spoken spirit line from Deepgram, cached by text and voice. Played
+  // slowed (so lower), through the stone reverb, from a point in the room.
+  // A faint second copy a few milliseconds late makes it sound doubled.
+  async speech(text, at, options = {}) {
+    if (!this.ctx) return false;
+    const key = "tts:" + (options.voice || "") + ":" + text;
+    try {
+      if (!this.buffers[key]) {
+        if (!this.pending) this.pending = {};
+        if (!this.pending[key]) {
+          this.pending[key] = fetch("/api/speak", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text, voice: options.voice }),
+          })
+            .then((r) => {
+              if (!r.ok) throw new Error("speak " + r.status);
+              return r.arrayBuffer();
+            })
+            .then((data) => new Promise((res, rej) => this.ctx.decodeAudioData(data, res, rej)))
+            .then((buf) => (this.buffers[key] = buf))
+            .finally(() => delete this.pending[key]);
+        }
+        await this.pending[key];
+      }
+    } catch (err) {
+      return false;
+    }
+    const buf = this.buffers[key];
+    const rate = options.rate || 0.82;
+    const volume = options.volume ?? 1.1;
+    const play = (delay, vol, detune) => {
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.playbackRate.value = rate * detune;
+      const lp = this.ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 3200;
+      const gain = this.ctx.createGain();
+      gain.gain.value = vol;
+      src.connect(lp);
+      lp.connect(gain);
+      const pan = this.panner(0.5);
+      if (pan.positionX) {
+        pan.positionX.value = at.x;
+        pan.positionY.value = at.y;
+        pan.positionZ.value = at.z;
+      } else {
+        pan.setPosition(at.x, at.y, at.z);
+      }
+      gain.connect(pan);
+      pan.connect(this.master);
+      gain.connect(this.church());
+      src.start(this.ctx.currentTime + delay);
+      return src;
+    };
+    const main = play(0, volume, 1);
+    play(0.035, volume * 0.35, 0.97);
+    return new Promise((resolve) => {
+      main.onended = () => resolve(true);
+    });
+  }
+
   // Play a voice clip from a point in the room. Resolves when it ends.
   voice(url, at, volume = 1) {
     return new Promise((resolve) => {

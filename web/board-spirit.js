@@ -4,8 +4,8 @@
 
 const Spirits = (() => {
   const layer = document.getElementById("whisper-layer");
-  const MIN_GAP = 40000;
-  let lastAt = performance.now() - 25000;
+  const MIN_GAP = 30000;
+  let lastAt = performance.now() - MIN_GAP;
   let current = null;
 
   function rand(a, b) {
@@ -113,7 +113,7 @@ const Spirits = (() => {
     layer.appendChild(el);
     current = el;
     requestAnimationFrame(() => {
-      el.style.opacity = rand(0.32, 0.45).toFixed(2);
+      el.style.opacity = rand(0.45, 0.6).toFixed(2);
     });
     // A slight flicker, as if the light cannot decide.
     const flicker = setInterval(() => {
@@ -144,13 +144,13 @@ const Spirits = (() => {
     if (Math.hypot(dx, dy) < 260) vanish(current);
   });
 
-  function schedule() {
+  function schedule(first) {
     setTimeout(() => {
       flash(true);
-      schedule();
-    }, 40000 + Math.random() * 50000);
+      schedule(false);
+    }, first ? 20000 + Math.random() * 10000 : 35000 + Math.random() * 25000);
   }
-  schedule();
+  schedule(true);
 
   return { flash };
 })();

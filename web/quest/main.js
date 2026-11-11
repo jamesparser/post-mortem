@@ -84,6 +84,7 @@ export class App {
       mic: null,
       movable: null,
       selectedNear: (p, r) => this.selectedNear(p, r),
+      anySelect: () => this.selects.length > 0 && !this.menu.mesh.visible,
       haptics: (i, ms) => this.haptics(i, ms),
       visibility: () => (this.session ? this.session.visibilityState || "visible" : "visible"),
     };
@@ -97,7 +98,7 @@ export class App {
   }
 
   async enterXR() {
-    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test"];
+    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test", "unbounded"];
     // Depth sensing lets the real world hide Thing: walls, furniture, your own
     // legs. It works even when the room was never mapped. If the browser will
     // not open a session with it, try again without.
@@ -114,7 +115,17 @@ export class App {
       session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["local-floor"], optionalFeatures: base });
     }
     this.session = session;
-    this.renderer.xr.setReferenceSpaceType("local-floor");
+    // Unbounded space lets you walk the whole house without the headset
+    // asking you to stay inside a boundary. Fall back to a floor-level space.
+    let spaceType = "local-floor";
+    try {
+      await session.requestReferenceSpace("unbounded");
+      spaceType = "unbounded";
+    } catch (err) {
+      spaceType = "local-floor";
+    }
+    this.spaceType = spaceType;
+    this.renderer.xr.setReferenceSpaceType(spaceType);
     // Controllers must exist before the session starts, or three.js never
     // reports the input sources that are already connected.
     if (!this.inputs.length) this.setupInputs();
@@ -209,16 +220,32 @@ export class App {
   }
 
   // Grab and carry the current mode's object: the casket or the board.
+  // Point the controller ray at it (or reach into it) and hold the grip
+  // button. It hangs on the end of the ray at the distance you caught it, so
+  // you can walk it across the house and set it on a table or a bed.
   onGrabStart(entry) {
     const target = this.ctx.movable;
     if (!target || this.grab) return;
-    const p = this.inputPosition(entry) || (entry.grip.visible ? entry.grip.getWorldPosition(new THREE.Vector3()) : null);
-    if (!p) return;
-    // Anywhere on or near the object counts: its bounds, grown by a hand's reach.
-    const box = new THREE.Box3().setFromObject(target).expandByScalar(this.ctx.movableReach ? this.ctx.movableReach * 0.5 : 0.2);
-    if (!box.containsPoint(p)) return;
+    const origin = entry.ray.getWorldPosition(new THREE.Vector3());
+    const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(entry.ray.getWorldQuaternion(new THREE.Quaternion()));
     const anchor = target.getWorldPosition(new THREE.Vector3());
-    this.grab = { entry, offset: anchor.clone().sub(p) };
+    const p = this.inputPosition(entry) || (entry.grip.visible ? entry.grip.getWorldPosition(new THREE.Vector3()) : null);
+    const box = new THREE.Box3().setFromObject(target).expandByScalar(this.ctx.movableReach ? this.ctx.movableReach * 0.5 : 0.2);
+    let distance = null;
+    if (p && box.containsPoint(p)) {
+      distance = Math.max(0.15, anchor.distanceTo(origin));
+    } else {
+      const hit = new THREE.Ray(origin, dir).intersectBox(box.clone().expandByScalar(0.08), new THREE.Vector3());
+      if (hit) distance = hit.distanceTo(origin);
+    }
+    if (distance === null) return;
+    const end = origin.clone().addScaledVector(dir, distance);
+    this.grab = { entry, distance, offset: anchor.clone().sub(end) };
+    this.haptics(0.4, 60);
+    if (this.caption && !this.grabHinted) {
+      this.grabHinted = true;
+      this.caption.show("Carrying. Walk it where you want it. Thumbstick forward pushes it away, back pulls it closer. Let go of the grip to set it down.", 6, true);
+    }
   }
 
   onGrabEnd(entry) {
@@ -236,20 +263,25 @@ export class App {
     }
     if (this.grab) {
       const e = this.grab.entry;
-      const p = this.inputPosition(e) || (e.grip.visible ? e.grip.getWorldPosition(new THREE.Vector3()) : null);
-      if (p) {
-        const want = p.clone().add(this.grab.offset);
-        target.parent.worldToLocal(want);
-        target.position.lerp(want, Math.min(1, dt * 18));
+      const pad = e.source && !e.source.hand && e.source.gamepad;
+      if (pad && pad.axes && pad.axes.length >= 4 && Math.abs(pad.axes[3]) > 0.25) {
+        this.grab.distance = Math.max(0.15, Math.min(6, this.grab.distance - pad.axes[3] * dt * 1.2));
       }
+      const origin = e.ray.getWorldPosition(new THREE.Vector3());
+      const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(e.ray.getWorldQuaternion(new THREE.Quaternion()));
+      const want = origin.addScaledVector(dir, this.grab.distance).add(this.grab.offset);
+      target.parent.worldToLocal(want);
+      target.position.lerp(want, Math.min(1, dt * 14));
     }
-    // Thumbsticks raise and lower it, and turn it.
+    // Thumbsticks raise and lower it, and turn it. While carrying, the
+    // carrying hand's stick pushes and pulls instead.
     for (const input of this.inputs) {
       const pad = input.source && !input.source.hand && input.source.gamepad;
       if (!pad || !pad.axes || pad.axes.length < 4) continue;
       const y = pad.axes[3];
       const x = pad.axes[2];
-      if (Math.abs(y) > 0.25) target.position.y -= y * dt * 0.35;
+      const carrying = this.grab && this.grab.entry === input;
+      if (!carrying && Math.abs(y) > 0.25) target.position.y -= y * dt * 0.35;
       if (Math.abs(x) > 0.5 && !this.menu.mesh.visible) target.rotation.y -= x * dt * 0.9;
     }
   }
