@@ -248,7 +248,7 @@
     await sleep(600);
     const words = await answerPromise;
     const spelled = await spell(words);
-    state.history.push({ q: question, a: spelled.replace(/\s+/g, " ") });
+    state.history.push({ q: question, a: String(words) });
     state.answered += 1;
     els.question.value = "";
     // Then it says the answer, low, from just behind you.

@@ -432,15 +432,20 @@ app.post("/api/spirit", async (req, res) => {
 });
 
 function toBoardWords(text, max) {
-  return cleanText(text)
+  let clean = cleanText(text)
     .replace(/['\u2019]/g, "")
     .replace(/[^A-Za-z0-9 ]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/\s{2,}/g, "  ")
     .trim()
-    .toUpperCase()
-    .split(" ")
-    .slice(0, max)
-    .join(" ");
+    .toUpperCase();
+  // A model that copies the board spells letter by letter: "Y O U  R U N".
+  // Join single letters back into words, using wide gaps as word breaks.
+  const tokens = clean.split(/\s+/);
+  if (tokens.length > 3 && tokens.every((t) => t.length === 1)) {
+    clean = clean.split("  ").map((w) => w.replace(/ /g, "")).join(" ");
+    if (!clean.includes(" ") && clean.length > 8) clean = clean.slice(0, 8);
+  }
+  return clean.replace(/\s+/g, " ").split(" ").slice(0, max).join(" ");
 }
 
 function pick(list) {

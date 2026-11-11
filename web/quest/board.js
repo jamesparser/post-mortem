@@ -339,7 +339,7 @@ export class SpiritBoardMode {
       "Slide it slowly. The controllers buzz harder as you get closer to the right letter, and hum steadily when you are on it. Hold it there.",
     ]);
     const spelled = await this.spell(words);
-    this.history.push({ q: question, a: spelled });
+    this.history.push({ q: question, a: String(words) });
     caption.show("You asked: " + question + ".   It answered: " + spelled, 6, true);
     // Then it says it, from behind you.
     await whisper(this.ctx, String(words).toLowerCase());
