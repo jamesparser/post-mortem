@@ -171,7 +171,7 @@ export class HideSeekMode {
         this.lastShownSecond = s;
         caption.show(
           this.peeking
-            ? s + "   No peeking. He froze. Cover your eyes."
+            ? s + "   You are peeking, so he is waiting. Look down at the floor, or put a hand over the headset."
             : s + "   Thing is hiding. Cover your eyes or look at the floor.",
           1.2,
           true
