@@ -251,7 +251,9 @@ export class BurialMode {
     this.program.mesh.visible = false;
     scene.add(this.program.mesh);
     audio.bed("storm-bed", 0.08, 3);
-    caption.show("Lay the departed inside.", 6);
+    caption.show("Lay the departed inside. Squeeze the grip to move the casket, thumbstick to raise or lower it.", 8, true);
+    this.ctx.movable = this.root;
+    this.ctx.movableReach = 0.55;
     this.state = "place";
     this.timer = 30;
     this.eulogy = this.fetchEulogy();
@@ -340,7 +342,8 @@ export class BurialMode {
 
     if (this.state === "lowering") {
       this.sink = Math.min(1.25, this.sink + dt * 0.17);
-      this.root.position.y = this.ctx.room.floorY - this.sink;
+      if (this.baseY === undefined) this.baseY = this.root.position.y;
+      this.root.position.y = this.baseY - this.sink;
       this.program.mesh.material.opacity = Math.max(0, 1 - this.sink * 1.4);
       if (this.sink >= 1.25) {
         // Gone. The silence that follows is load bearing. Do not fill it.
@@ -367,11 +370,11 @@ export class BurialMode {
     if (this.program.mesh.visible) {
       const head = camera.getWorldPosition(new THREE.Vector3());
       const p = casketCenter.clone();
-      p.y = this.ctx.room.floorY + BIER_HEIGHT + 0.55 + Math.sin(performance.now() / 1400) * 0.01;
+      p.y = (this.baseY ?? this.root.position.y) + BIER_HEIGHT + 0.55 + Math.sin(performance.now() / 1400) * 0.01;
       this.program.mesh.position.copy(p);
       this.program.mesh.lookAt(head);
     }
-    this.petals.update(dt, this.root.position.y - this.ctx.room.floorY);
+    this.petals.update(dt, this.dropY === undefined ? 0 : this.root.position.y - this.dropY);
   }
 
   // The point under the floor where the casket came to rest.
@@ -403,6 +406,7 @@ export class BurialMode {
   }
 
   closeLid() {
+    this.ctx.movable = null;
     this.state = "closing";
     this.timer = 2.6;
     this.ctx.caption.hide();
@@ -418,7 +422,8 @@ export class BurialMode {
       this.organ.start();
       this.organ.setGain(0.5, 1.5);
     }
-    this.petals.drop(center, room.floorY, room.floorY + BIER_HEIGHT + CASKET.height + 0.03, this.interiorBox());
+    this.dropY = this.root.position.y;
+    this.petals.drop(center, room.floorY, this.root.position.y + BIER_HEIGHT + CASKET.height + 0.03, this.interiorBox());
     const eulogy = await this.eulogy;
     this.program.mesh.visible = true;
     this.program.mesh.material.opacity = 1;

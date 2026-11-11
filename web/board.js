@@ -483,7 +483,7 @@
   els.mic.addEventListener("click", () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
-      caption("It cannot hear you here. Type the question.");
+      listenWithServer();
       return;
     }
     BoardAudio.start();
@@ -508,6 +508,48 @@
       caption("It did not hear you. Type the question.");
     }
   });
+
+  // Browsers without speech recognition record a few seconds and the server
+  // turns it into text.
+  async function listenWithServer() {
+    BoardAudio.start();
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (err) {
+      caption("It cannot hear you. Type the question.");
+      return;
+    }
+    if (!window.MediaRecorder) {
+      caption("It cannot hear you here. Type the question.");
+      return;
+    }
+    const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
+    const chunks = [];
+    const rec = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream);
+    rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data);
+    const stopped = new Promise((r) => (rec.onstop = r));
+    caption("Listening");
+    rec.start();
+    await sleep(5000);
+    rec.stop();
+    await stopped;
+    stream.getTracks().forEach((t) => t.stop());
+    const blob = new Blob(chunks, { type: rec.mimeType || type || "audio/webm" });
+    try {
+      const res = await fetch("/api/listen", { method: "POST", headers: { "Content-Type": blob.type.split(";")[0] }, body: blob });
+      const text = String((await res.json()).text || "").trim();
+      if (!text) {
+        caption("It did not hear you. Type the question.");
+        return;
+      }
+      els.question.value = text;
+      caption(text);
+      ask();
+    } catch (err) {
+      caption("It did not hear you. Type the question.");
+    }
+  }
 
   // Start in the mode the link asked for.
   const params = new URLSearchParams(location.search);

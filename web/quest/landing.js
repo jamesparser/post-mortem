@@ -54,6 +54,25 @@ async function prepareFuneral() {
   }
 }
 
+// The microphone is asked for on the page, before the headset opens, so the
+// spirit board can hear questions without a permission prompt in the dark.
+let mic = null;
+function askMic() {
+  if (mic && mic.active) return Promise.resolve(mic);
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve(null);
+  return navigator.mediaDevices
+    .getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+    .then((stream) => {
+      mic = stream;
+      btnMic.textContent = "Microphone ready";
+      btnMic.disabled = true;
+      return stream;
+    })
+    .catch(() => null);
+}
+const btnMic = document.getElementById("btn-mic");
+btnMic.addEventListener("click", askMic);
+
 btnEnter.addEventListener("click", async () => {
   btnEnter.disabled = true;
   const funeralPromise = prepareFuneral();
@@ -64,7 +83,11 @@ btnEnter.addEventListener("click", async () => {
   };
   try {
     document.body.classList.add("presenting");
-    await app.enterXR();
+    // Start the session first, while the click still counts as a gesture.
+    const entering = app.enterXR();
+    const micReady = askMic();
+    await entering;
+    app.ctx.mic = await micReady;
     app.ctx.funeral = await funeralPromise;
   } catch (err) {
     document.body.classList.remove("presenting");

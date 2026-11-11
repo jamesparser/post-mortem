@@ -146,6 +146,11 @@ export class Room {
     return { changed: mesh.lastChangedTime, label, box, objects: [occluder], center: box.getCenter(new THREE.Vector3()) };
   }
 
+  setManualFloor(y) {
+    this.manualFloor = y;
+    this.refresh();
+  }
+
   refresh() {
     this.version += 1;
     const floors = this.planeList().filter((p) => p.label === "floor");
@@ -155,7 +160,9 @@ export class Room {
       this.floorPolygon = floors[0].world;
     } else {
       const horizontals = this.planeList().filter((p) => p.orientation === "horizontal" && p.normal.y > 0.5);
-      if (horizontals.length) this.floorY = Math.min(0, ...horizontals.map((p) => p.y));
+      if (this.manualFloor !== undefined) this.floorY = this.manualFloor;
+      else if (horizontals.length) this.floorY = Math.min(0, ...horizontals.map((p) => p.y));
+      else this.floorY = 0;
     }
     this.hasGlobalMesh = this.meshList().some((m) => m.label === "global mesh");
     this.hasScan = this.planes.size > 0 || this.meshes.size > 0;
@@ -208,7 +215,9 @@ export class Room {
 
   insideRoom(point) {
     if (!this.floorPolygon || this.floorPolygon.length < 3) {
-      return point.distanceTo(this.start) < 4.5;
+      const dx = point.x - this.start.x;
+      const dz = point.z - this.start.z;
+      return Math.hypot(dx, dz) < (this.hasScan ? 4.5 : 1.8);
     }
     return pointInPolygonXZ(point, this.floorPolygon);
   }

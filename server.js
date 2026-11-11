@@ -326,6 +326,34 @@ app.post("/api/speak", async (req, res) => {
 // The spirit board. Two modes.
 // mode "dead": the open seance. mode "device": the buried device answers a few
 // times, colder each time, and the client sends it to GOOD BYE after the last.
+// Speech to text for questions asked out loud, for browsers without their own
+// recognition (the Quest browser among them). Deepgram, same key as the voice.
+app.post(
+  "/api/listen",
+  express.raw({ type: ["audio/*", "video/webm", "application/octet-stream"], limit: "6mb" }),
+  async (req, res) => {
+    try {
+      if (!config.deepgramApiKey) return res.status(503).json({ text: "" });
+      const audio = req.body;
+      if (!audio || !audio.length) return res.status(400).json({ text: "" });
+      const type = String(req.headers["content-type"] || "audio/webm").split(";")[0];
+      const dg = await fetch("https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&language=en", {
+        method: "POST",
+        headers: { Authorization: "Token " + config.deepgramApiKey, "Content-Type": type },
+        body: audio,
+        signal: AbortSignal.timeout(20000),
+      });
+      if (!dg.ok) throw new Error("deepgram listen failed: " + dg.status);
+      const data = await dg.json();
+      const text = data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
+      res.json({ text: cleanText(text).slice(0, 200) });
+    } catch (err) {
+      console.error("listen:", err.message);
+      res.status(502).json({ text: "" });
+    }
+  }
+);
+
 app.post("/api/spirit", async (req, res) => {
   const { question, mode, deviceName, condition, history, turn, final } = req.body || {};
   const q = String(question || "Is anyone there?").slice(0, 200);

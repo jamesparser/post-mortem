@@ -80,6 +80,9 @@ export class App {
       caption: this.caption,
       funeral: this.funeral,
       reachPoints: () => this.reachPoints(),
+      touchPoints: () => this.touchPoints(),
+      mic: null,
+      movable: null,
       selectedNear: (p, r) => this.selectedNear(p, r),
       haptics: (i, ms) => this.haptics(i, ms),
       visibility: () => (this.session ? this.session.visibilityState || "visible" : "visible"),
@@ -94,13 +97,22 @@ export class App {
   }
 
   async enterXR() {
-    const init = {
+    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test"];
+    // Depth sensing lets the real world hide Thing: walls, furniture, your own
+    // legs. It works even when the room was never mapped. If the browser will
+    // not open a session with it, try again without.
+    const withDepth = {
       requiredFeatures: ["local-floor"],
-      optionalFeatures: ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test"],
+      optionalFeatures: [...base, "depth-sensing"],
+      depthSensing: { usagePreference: ["gpu-optimized"], dataFormatPreference: ["luminance-alpha", "float32", "unsigned-short"] },
     };
-    const sessionPromise = navigator.xr.requestSession("immersive-ar", init);
     const audioReady = this.audio.init();
-    const session = await sessionPromise;
+    let session;
+    try {
+      session = await navigator.xr.requestSession("immersive-ar", withDepth);
+    } catch (err) {
+      session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["local-floor"], optionalFeatures: base });
+    }
     this.session = session;
     this.renderer.xr.setReferenceSpaceType("local-floor");
     // Controllers must exist before the session starts, or three.js never
@@ -143,6 +155,14 @@ export class App {
         entry.source = null;
       });
       ray.addEventListener("select", () => this.onSelect(entry));
+      ray.addEventListener("squeezestart", () => this.onGrabStart(entry));
+      ray.addEventListener("squeezeend", () => this.onGrabEnd(entry));
+      ray.addEventListener("selectstart", () => {
+        if (entry.source && entry.source.hand && this.ctx.movableHands !== false) this.onGrabStart(entry);
+      });
+      ray.addEventListener("selectend", () => {
+        if (entry.source && entry.source.hand) this.onGrabEnd(entry);
+      });
       this.inputs.push(entry);
     }
   }
@@ -162,6 +182,83 @@ export class App {
       }
     }
     return points;
+  }
+
+  // Where each input touches the world, and whether it is gripping:
+  // a controller with its trigger or grip held, or a hand pinching.
+  touchPoints() {
+    const out = [];
+    for (const input of this.inputs) {
+      if (!input.source) continue;
+      if (input.source.hand) {
+        const j = input.hand.joints || {};
+        const a = j["thumb-tip"];
+        const b = j["index-finger-tip"];
+        if (!a || !b || !a.visible || !b.visible) continue;
+        const pa = a.getWorldPosition(new THREE.Vector3());
+        const pb = b.getWorldPosition(new THREE.Vector3());
+        out.push({ point: pa.clone().lerp(pb, 0.5), pressed: pa.distanceTo(pb) < 0.03, hand: true, input });
+      } else if (input.grip.visible) {
+        const pad = input.source.gamepad;
+        // The trigger grips the planchette. The grip button is kept for carrying things.
+        const pressed = Boolean(pad && pad.buttons[0] && pad.buttons[0].pressed);
+        out.push({ point: input.grip.getWorldPosition(new THREE.Vector3()), pressed, hand: false, input });
+      }
+    }
+    return out;
+  }
+
+  // Grab and carry the current mode's object: the casket or the board.
+  onGrabStart(entry) {
+    const target = this.ctx.movable;
+    if (!target || this.grab) return;
+    const p = this.inputPosition(entry) || (entry.grip.visible ? entry.grip.getWorldPosition(new THREE.Vector3()) : null);
+    if (!p) return;
+    // Anywhere on or near the object counts: its bounds, grown by a hand's reach.
+    const box = new THREE.Box3().setFromObject(target).expandByScalar(this.ctx.movableReach ? this.ctx.movableReach * 0.5 : 0.2);
+    if (!box.containsPoint(p)) return;
+    const anchor = target.getWorldPosition(new THREE.Vector3());
+    this.grab = { entry, offset: anchor.clone().sub(p) };
+  }
+
+  onGrabEnd(entry) {
+    if (this.grab && this.grab.entry === entry) {
+      this.grab = null;
+      if (this.ctx.onMoved) this.ctx.onMoved();
+    }
+  }
+
+  updateGrab(dt) {
+    const target = this.ctx.movable;
+    if (!target) {
+      this.grab = null;
+      return;
+    }
+    if (this.grab) {
+      const e = this.grab.entry;
+      const p = this.inputPosition(e) || (e.grip.visible ? e.grip.getWorldPosition(new THREE.Vector3()) : null);
+      if (p) {
+        const want = p.clone().add(this.grab.offset);
+        target.parent.worldToLocal(want);
+        target.position.lerp(want, Math.min(1, dt * 18));
+      }
+    }
+    // Thumbsticks raise and lower it, and turn it.
+    for (const input of this.inputs) {
+      const pad = input.source && !input.source.hand && input.source.gamepad;
+      if (!pad || !pad.axes || pad.axes.length < 4) continue;
+      const y = pad.axes[3];
+      const x = pad.axes[2];
+      if (Math.abs(y) > 0.25) target.position.y -= y * dt * 0.35;
+      if (Math.abs(x) > 0.5 && !this.menu.mesh.visible) target.rotation.y -= x * dt * 0.9;
+    }
+  }
+
+  // Calibrate the floor by touching it, for rooms the headset never mapped.
+  setFloor() {
+    this.menu.hide();
+    this.awaitingFloor = true;
+    this.caption.show("Touch the floor with a controller or a hand, then pull the trigger or pinch.", 0, true);
   }
 
   selectedNear(point, radius) {
@@ -195,6 +292,17 @@ export class App {
   }
 
   onSelect(entry) {
+    if (this.awaitingFloor) {
+      const p = this.inputPosition(entry) || (entry.grip.visible ? entry.grip.getWorldPosition(new THREE.Vector3()) : null);
+      if (p) {
+        this.awaitingFloor = false;
+        // A controller held to the floor sits a few centimetres above it.
+        this.room.setManualFloor(p.y - (entry.source && entry.source.hand ? 0.01 : 0.04));
+        this.caption.show("The floor is here now.", 3, true);
+        if (this.modeName === "burial" || this.modeName === "board") this.startMode(this.modeName, this.modeArg);
+        return;
+      }
+    }
     if (this.menu.mesh.visible) {
       const hit = this.rayHit(entry, [this.menu.mesh]);
       if (hit) {
@@ -228,8 +336,11 @@ export class App {
       { label: "The burial", note: "Lay a real device to rest", action: () => this.startMode("burial") },
       { label: "The spirit board", note: "On your table. Feel for the letters.", action: () => this.showBoardMenu() },
     ];
-    if (this.session && this.session.initiateRoomCapture && !this.room.hasScan) {
-      items.push({ label: "Map this room", note: "So he knows where to hide", action: () => this.mapRoom() });
+    if (!this.room.hasScan) {
+      items.push({ label: "Set the floor", note: "Touch it once so things stand on it", action: () => this.setFloor() });
+      if (this.session && this.session.initiateRoomCapture) {
+        items.push({ label: "Map this room", note: "So he knows your walls", action: () => this.mapRoom() });
+      }
     }
     items.push({ label: "Leave the house", action: () => this.leave() });
     this.menu.setItems("The house", "Press the brass button on your wrist to return here.", items);
@@ -259,7 +370,14 @@ export class App {
 
   mapRoom() {
     this.menu.hide();
-    this.session.initiateRoomCapture().catch(() => this.caption.show("The room could not be mapped from here.", 4, true));
+    // The headset maps the room in its own Space Setup. The new map only
+    // reaches a page when a session starts, so the visitor has to come back in.
+    this.session
+      .initiateRoomCapture()
+      .then(() => this.caption.show("Mapped. Leave the house and enter again to load the new map.", 8, true))
+      .catch(() =>
+        this.caption.show("Map the room in the headset: Settings, Physical space, Space setup. Then enter again.", 8, true)
+      );
   }
 
   leave() {
@@ -270,6 +388,11 @@ export class App {
   startMode(name, arg) {
     this.menu.hide();
     if (this.mode && this.mode.exit) this.mode.exit();
+    this.ctx.movable = null;
+    this.ctx.movableHands = true;
+    this.ctx.onMoved = null;
+    this.grab = null;
+    this.modeArg = arg;
     const back = () => this.startMode("ambient");
     if (name === "hideseek") this.mode = new HideSeekMode(this.ctx, arg, back);
     else if (name === "burial") this.mode = new BurialMode(this.ctx, back);
@@ -333,13 +456,20 @@ export class App {
         this.showMainMenu();
         if (!this.room.hasScan) {
           setTimeout(() => {
-            if (!this.room.hasScan) this.caption.show("This room is not mapped yet. Choose Map this room from the menu.", 6, true);
+            if (!this.room.hasScan) {
+              this.caption.show(
+                "This room is not mapped, so Thing cannot see your walls. Map it in Settings, Physical space, Space setup, then enter again. Or choose Set the floor.",
+                9,
+                true
+              );
+            }
           }, 4000);
         }
       }
     }
 
     if (this.mode) this.mode.update(dt);
+    this.updateGrab(dt);
     this.mover.update(dt);
     this.selects.length = 0;
     this.pollButtons();

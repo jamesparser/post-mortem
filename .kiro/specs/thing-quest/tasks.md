@@ -83,3 +83,14 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 10.3 Guided letters by controller haptics, tremble for hands, auto move fallback.
 - [x] 10.4 Circling whispers, breath, footsteps, and a figure at the side of the eye.
 - [x] 10.5 Questions out loud where the browser can listen, otherwise it answers a question you did not ask.
+
+## 11. Fixes from the first headset pass
+
+- [x] 11.1 Depth sensing for occlusion, so real walls and furniture hide Thing even in an unmapped room. Falls back cleanly if the browser refuses it.
+- [x] 11.2 Without a map, Thing stays within about two meters of where you started.
+- [x] 11.3 Set the floor: touch the floor once with a controller or a hand. Fixes floating caskets and tables in unmapped rooms.
+- [x] 11.4 Map this room explains that the new map loads on the next entry, and points to Space setup if the browser cannot start it.
+- [x] 11.5 Move the casket and the board: squeeze a grip button beside it and carry it. Thumbstick up or down raises or lowers it, left or right turns it. Hands can pinch and carry the casket.
+- [x] 11.6 Spirit board needs both hands: pinch the planchette with both hands, or hold both triggers on it. It never moves without them.
+- [x] 11.7 It pulls: while spelling, the planchette leads the hands by up to five centimetres toward the hidden letter. Haptics quicken near it.
+- [x] 11.8 Questions out loud: the headset microphone records a few seconds and the server transcribes it with Deepgram. Asked for on the landing page before entering.

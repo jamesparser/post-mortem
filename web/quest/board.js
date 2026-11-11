@@ -275,22 +275,24 @@ export class SpiritBoardMode {
     audio.bed("storm-bed", 0.05, 3);
     scene.add(this.root);
     this.placeOnTable(camera, room);
+    this.ctx.movable = this.root;
+    this.ctx.movableReach = 0.45;
+    // Pinching is for the planchette here. Controllers carry the board with the grip button.
+    this.ctx.movableHands = false;
     const device = this.departed();
     if (this.kind === "device" && !device) this.kind = "dead";
     this.device = device;
     caption.show(
-      this.kind === "device"
-        ? "It is " + device + ". Rest your hand on the planchette."
-        : "Rest your hand on the planchette. Then ask, out loud.",
-      6,
+      (this.kind === "device" ? "It is " + device + ". " : "") +
+        "Put both hands on the planchette: pinch it, or hold both triggers. To move the board, squeeze a grip button beside it. Thumbstick raises or lowers it.",
+      9,
       true
     );
-    setTimeout(() => this.round(), 6500);
+    setTimeout(() => this.round(), 4000);
   }
 
   exit() {
     this.ctx.scene.remove(this.root);
-    if (this.table) this.ctx.scene.remove(this.table);
     this.whisperers.forEach((w) => w.src.stop());
     this.whisperers = [];
     this.ctx.audio.bed("storm-bed", 0.12, 3);
@@ -328,19 +330,34 @@ export class SpiritBoardMode {
       const wood = woodMaterial(woodTextures(61));
       this.table = pedestalTable(wood);
       const base = head.clone().addScaledVector(fwd, 0.55);
-      this.table.position.set(base.x, room.floorY, base.z);
-      this.ctx.scene.add(this.table);
       this.root.position.set(base.x, room.floorY + this.table.userData.top + BOARD.t / 2, base.z);
+      // The table travels with the board when the visitor moves it.
+      this.table.position.set(0, -(this.table.userData.top + BOARD.t / 2), 0);
+      this.root.add(this.table);
     }
     // Long side toward the viewer, letters upright for them.
     const to = head.clone().sub(this.root.position).setY(0);
     this.root.rotation.y = Math.atan2(to.x, to.z);
   }
 
+  // Wait until both hands (or both controllers) are gripping the planchette.
+  async waitForHands(message) {
+    let nag = 0;
+    while (!this.held && !this.closed) {
+      if (performance.now() > nag) {
+        this.ctx.caption.show(message || "Both hands on the planchette.", 5, true);
+        nag = performance.now() + 9000;
+      }
+      await this.sleep(120);
+    }
+  }
+
   async round() {
     if (this.closed || this.busy || this.locked) return;
     this.busy = true;
     const { caption, audio } = this.ctx;
+    await this.waitForHands("Both hands on the planchette. Pinch it, or hold the triggers.");
+    if (this.closed) return;
     const question = await this.listen();
     if (this.closed) return;
     audio.oneShot("groans", this.aroundHead(Math.PI, 3), 0.2, 0.8);
@@ -358,13 +375,13 @@ export class SpiritBoardMode {
     } catch (err) {
       words = "NOT NOW";
     }
-    await this.sleep(1200);
+    await this.sleep(900);
     const spelled = await this.spell(words);
     this.history.push({ q: question, a: spelled });
     if (Math.random() < 0.5) this.showSpirit();
     if (this.kind === "device" && this.turn >= this.maxTurns) {
       await this.sleep(1500);
-      await this.goTo("GOOD BYE", true);
+      await this.goTo("GOOD BYE");
       caption.show("GOOD BYE", 4, true);
       this.locked = true;
       await this.sleep(4500);
@@ -372,42 +389,61 @@ export class SpiritBoardMode {
       this.busy = false;
       return;
     }
-    this.target = { x: 0, z: 0.06 };
     this.busy = false;
-    await this.sleep(3500);
+    await this.sleep(2500);
     this.round();
   }
 
-  // Ask out loud where the browser can listen. Otherwise the board answers a
-  // question nobody asked, which is worse.
-  listen() {
+  // Ask out loud. The headset microphone records a few seconds and the server
+  // turns it into text with Deepgram. If nothing is heard twice, the board
+  // answers a question nobody asked, which is worse.
+  async listen() {
     const { caption } = this.ctx;
     const list = this.kind === "device" ? ASK_DEVICE : ASK_DEAD;
     const fallback = list[(this.history.length + Math.floor(Math.random() * 2)) % list.length];
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      caption.show("It answers a question you did not ask.", 3, true);
-      return this.sleep(2500).then(() => fallback);
-    }
-    caption.show("Ask it. Out loud.", 5, true);
-    return new Promise((resolve) => {
-      let heard = "";
-      const rec = new SR();
-      rec.lang = "en-US";
-      rec.onresult = (e) => {
-        heard = e.results[0][0].transcript;
-      };
-      rec.onend = () => resolve(heard.trim() || fallback);
-      rec.onerror = () => resolve(fallback);
-      try {
-        rec.start();
-        setTimeout(() => {
-          try { rec.stop(); } catch (err) { /* already stopped */ }
-        }, 6000);
-      } catch (err) {
-        resolve(fallback);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      caption.show(attempt ? "It did not hear you. Ask again, louder." : "Ask it a question. Out loud. Now.", 0, true);
+      const text = await this.recordQuestion(5200);
+      if (text) {
+        caption.show("You asked: " + text, 3, true);
+        await this.sleep(1800);
+        return text;
       }
-    });
+    }
+    caption.show("It answers a question you did not ask.", 3, true);
+    await this.sleep(2200);
+    return fallback;
+  }
+
+  async recordQuestion(ms) {
+    let stream = this.ctx.mic;
+    try {
+      if (!stream || !stream.active) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        this.ctx.mic = stream;
+      }
+    } catch (err) {
+      return "";
+    }
+    if (!window.MediaRecorder) return "";
+    const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || "";
+    const chunks = [];
+    const rec = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream);
+    rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data);
+    const done = new Promise((r) => (rec.onstop = r));
+    rec.start();
+    await this.sleep(ms);
+    rec.stop();
+    await done;
+    const blob = new Blob(chunks, { type: rec.mimeType || type || "audio/webm" });
+    if (blob.size < 2000) return "";
+    try {
+      const res = await fetch("/api/listen", { method: "POST", headers: { "Content-Type": blob.type.split(";")[0] }, body: blob });
+      const data = await res.json();
+      return String(data.text || "").trim();
+    } catch (err) {
+      return "";
+    }
   }
 
   async spell(words) {
@@ -431,39 +467,41 @@ export class SpiritBoardMode {
     return shown.replace(/\s+/g, " ").trim();
   }
 
-  // Reach a key. With a hand on the planchette the visitor moves it and feels
-  // for the letter. Otherwise it moves on its own.
-  async goTo(key, slow) {
+  // Reach a key. The visitor's hands move the planchette. It pulls them toward
+  // the letter, a few centimetres ahead of their hands, and the controllers
+  // buzz faster and harder as they close in. It never moves without them.
+  async goTo(key) {
     const k = this.keys[key];
     if (!k) return;
-    const start = performance.now();
     this.guide = k;
-    this.target = this.held ? null : { x: k.x, z: k.z };
-    this.slow = Boolean(slow);
+    this.pullStart = performance.now();
     let nextPulse = 0;
-    while (performance.now() - start < 12000 && !this.closed) {
+    let nag = performance.now() + 4000;
+    while (!this.closed) {
       await this.sleep(30);
       const d = Math.hypot(k.x - this.p.x, k.z - this.p.z);
-      if (d < 0.012) break;
+      if (d < 0.014 && this.held) break;
       if (this.held) {
-        this.target = null;
         const near = Math.max(0, 1 - d / 0.3);
         const now = performance.now();
         if (now > nextPulse) {
-          this.ctx.haptics(0.06 + near * 0.7, 40 + near * 40);
+          this.ctx.haptics(0.08 + near * 0.72, 40 + near * 40);
           nextPulse = now + 650 - near * 560;
         }
         this.tremble = near;
+        nag = now + 6000;
       } else {
-        this.target = { x: k.x, z: k.z };
         this.tremble = 0;
+        this.pullStart = performance.now();
+        if (performance.now() > nag) {
+          this.ctx.caption.show("Keep both hands on it.", 3, true);
+          nag = performance.now() + 6000;
+        }
       }
-      // Lost and left alone for too long: it takes over.
-      if (performance.now() - start > 9000) this.held = false;
     }
     this.guide = null;
     this.tremble = 0;
-    this.ctx.haptics(this.held ? 1 : 0.25, this.held ? 110 : 40);
+    this.ctx.haptics(1, 110);
     this.ctx.audio.oneShot("thud", this.planchette.getWorldPosition(new THREE.Vector3()), 0.08, 2.4);
     this.glow.position.x = k.x;
     this.glow.position.z = k.z;
@@ -505,6 +543,7 @@ export class SpiritBoardMode {
     const p = this.aroundHead(side * rand(1.2, 1.9), rand(1.3, 2));
     this.root.worldToLocal(p);
     this.spirit.position.set(p.x, room.floorY - this.root.position.y + 0.8, p.z);
+    this.spirit.rotation.set(0, 0, 0);
     this.spirit.visible = true;
     this.spirit.material.opacity = 0;
     this.spiritLife = rand(2, 4);
@@ -514,44 +553,44 @@ export class SpiritBoardMode {
   update(dt) {
     if (this.closed) return;
     const { camera, reachPoints } = this.ctx;
-    // Is a hand or a controller resting on the planchette?
+    // Both hands, or both controllers, gripping the planchette.
     const pw = this.planchette.getWorldPosition(new THREE.Vector3());
-    const points = reachPoints();
-    let touch = null;
-    let best = 0.07;
-    for (const q of points) {
-      const d = q.distanceTo(pw);
-      if (d < best) {
-        best = d;
-        touch = q;
-      }
-    }
-    if (touch) {
+    const touches = this.ctx.touchPoints();
+    const gripping = touches.filter((t) => t.pressed && t.point.distanceTo(pw) < 0.12);
+    const needed = Math.min(2, touches.length || 2);
+    if (gripping.length >= needed) {
+      const center = gripping.reduce((acc, t) => acc.add(t.point), new THREE.Vector3()).divideScalar(gripping.length);
+      const local = this.board.worldToLocal(center);
+      if (!this.held) this.grabOffset = { x: this.p.x - local.x, z: this.p.z - local.z };
       this.held = true;
-      this.heldPoint = touch;
+      this.handsLocal = local;
       this.lastTouch = performance.now();
-    } else if (this.held && performance.now() - (this.lastTouch || 0) > 600) {
+    } else if (this.held && performance.now() - (this.lastTouch || 0) > 400) {
       this.held = false;
     }
 
-    // Move the planchette: follow the hand, or glide on its own.
-    let goal = this.target;
-    if (this.held && this.heldPoint) {
-      const local = this.board.worldToLocal(this.heldPoint.clone());
-      goal = { x: local.x, z: local.z };
-      // It leans toward the letter it wants. Barely.
+    // It only moves under the hands. While it spells, it leads them toward
+    // the letter by up to a few centimetres: they feel the pull and follow.
+    if (this.held && this.handsLocal) {
+      const goal = { x: this.handsLocal.x + this.grabOffset.x, z: this.handsLocal.z + this.grabOffset.z };
       if (this.guide) {
-        goal.x += (this.guide.x - goal.x) * 0.06;
-        goal.z += (this.guide.z - goal.z) * 0.06;
+        const dx = this.guide.x - goal.x;
+        const dz = this.guide.z - goal.z;
+        const dist = Math.hypot(dx, dz) || 1;
+        const ramp = Math.min(1, (performance.now() - this.pullStart) / 1200);
+        const lead = Math.min(dist, 0.055) * ramp;
+        goal.x += (dx / dist) * lead;
+        goal.z += (dz / dist) * lead;
       }
-    }
-    if (goal) {
-      const k = this.slow ? 20 : 45;
-      const damp = this.slow ? 7 : 9;
+      const k = 45;
+      const damp = 9;
       this.p.vx += ((goal.x - this.p.x) * k - this.p.vx * damp) * dt;
       this.p.vz += ((goal.z - this.p.z) * k - this.p.vz * damp) * dt;
       this.p.x += this.p.vx * dt;
       this.p.z += this.p.vz * dt;
+    } else {
+      this.p.vx *= 0.8;
+      this.p.vz *= 0.8;
     }
     this.p.x = Math.max(-BOARD.w / 2 + 0.03, Math.min(BOARD.w / 2 - 0.03, this.p.x));
     this.p.z = Math.max(-BOARD.d / 2 + 0.03, Math.min(BOARD.d / 2 - 0.03, this.p.z));
