@@ -92,3 +92,4 @@ Sequenced checklist. Keep status in sync.
 - [x] 13.2 After it spells, a spirit voice speaks the answer from behind the visitor: a Deepgram Aura voice chosen from a fixed server allowlist, slowed, low passed, doubled, in reverb.
 - [x] 13.3 Spoken lines join the ambience (Behind you. Do not turn around.) with louder whispers, breath and footsteps.
 - [x] 13.4 Figures appear sooner and stronger on the web: the first within about half a minute, then every thirty five to sixty seconds.
+- [x] 13.5 No guiding on either board. The planchette goes only where you move it. Vibration grows with closeness, turns into a steady buzz right over the letter, and a short hold takes it.

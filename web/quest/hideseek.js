@@ -143,7 +143,7 @@ export class HideSeekMode {
         this.timer = this.length.hide;
         this.ctx.setHint("He is hiding", [
           "Cover your eyes: hands over the headset, or look at the floor.",
-          "If you peek he freezes and picks a new spot.",
+          "No peeking. If you peek, he has to find a new hiding spot.",
         ]);
         this.arrived = false;
         this.lastShownSecond = -1;
@@ -171,7 +171,7 @@ export class HideSeekMode {
         this.lastShownSecond = s;
         caption.show(
           this.peeking
-            ? s + "   You are peeking, so he is waiting. Look down at the floor, or put a hand over the headset."
+            ? s + "   Stop peeking! Look at the floor, or cover the headset with your hand."
             : s + "   Thing is hiding. Cover your eyes or look at the floor.",
           1.2,
           true

@@ -336,7 +336,7 @@ export class SpiritBoardMode {
     await this.sleep(900);
     this.ctx.setHint("It is answering", [
       "Keep both hands on the planchette.",
-      "Let it pull you. Your controllers buzz harder as you near each letter.",
+      "Slide it slowly. The controllers buzz harder as you get closer to the right letter, and hum steadily when you are on it. Hold it there.",
     ]);
     const spelled = await this.spell(words);
     this.history.push({ q: question, a: spelled });
@@ -438,39 +438,54 @@ export class SpiritBoardMode {
   // Reach a key. The visitor's hands move the planchette. It pulls them toward
   // the letter, a few centimetres ahead of their hands, and the controllers
   // buzz faster and harder as they close in. It never moves without them.
+  // Find a key by feel. The controllers buzz harder and faster the closer
+  // the planchette window gets to the letter it wants, and hum steadily when
+  // you are right over it. Hold it there a moment and the letter is taken.
   async goTo(key) {
     const k = this.keys[key];
     if (!k) return;
     this.guide = k;
-    this.pullStart = performance.now();
     let nextPulse = 0;
     let nag = performance.now() + 4000;
+    let overSince = 0;
+    const OVER = key.length > 1 ? 0.045 : 0.022;
     while (!this.closed) {
       await this.sleep(30);
       const d = Math.hypot(k.x - this.p.x, k.z - this.p.z);
-      if (d < 0.014 && this.held) break;
+      const now = performance.now();
       if (this.held) {
-        const near = Math.max(0, 1 - d / 0.3);
-        const now = performance.now();
-        if (now > nextPulse) {
-          this.ctx.haptics(0.08 + near * 0.72, 40 + near * 40);
-          nextPulse = now + 650 - near * 560;
-        }
-        this.tremble = near;
         nag = now + 6000;
+        if (d < OVER) {
+          if (!overSince) overSince = now;
+          if (now > nextPulse) {
+            this.ctx.haptics(1, 90);
+            nextPulse = now + 90;
+          }
+          this.tremble = 1;
+          if (now - overSince > 600) break;
+          continue;
+        }
+        overSince = 0;
+        const near = Math.max(0, 1 - d / 0.35);
+        const strength = near * near;
+        if (now > nextPulse) {
+          if (near > 0.05) this.ctx.haptics(0.05 + strength * 0.8, 30 + strength * 50);
+          nextPulse = now + 700 - strength * 600;
+        }
+        this.tremble = strength * 0.6;
       } else {
+        overSince = 0;
         this.tremble = 0;
-        this.pullStart = performance.now();
-        if (performance.now() > nag) {
+        if (now > nag) {
           this.ctx.caption.show("Keep both hands on it.", 3, true);
-          nag = performance.now() + 6000;
+          nag = now + 6000;
         }
       }
     }
     this.guide = null;
     this.tremble = 0;
-    this.ctx.haptics(1, 110);
-    this.ctx.audio.oneShot("thud", this.planchette.getWorldPosition(new THREE.Vector3()), 0.08, 2.4);
+    this.ctx.haptics(1, 160);
+    this.ctx.audio.oneShot("thud", this.planchette.getWorldPosition(new THREE.Vector3()), 0.12, 2.4);
     this.glow.position.x = k.x;
     this.glow.position.z = k.z;
     this.glow.material.opacity = 0.55;
@@ -525,19 +540,10 @@ export class SpiritBoardMode {
       this.held = false;
     }
 
-    // It only moves under the hands. While it spells, it leads them toward
-    // the letter by up to a few centimetres: they feel the pull and follow.
+    // It only moves where your hands take it. No pull: you find the letter
+    // by feel alone.
     if (this.held && this.handsLocal) {
       const goal = { x: this.handsLocal.x + this.grabOffset.x, z: this.handsLocal.z + this.grabOffset.z };
-      if (this.guide) {
-        const dx = this.guide.x - goal.x;
-        const dz = this.guide.z - goal.z;
-        const dist = Math.hypot(dx, dz) || 1;
-        const ramp = Math.min(1, (performance.now() - this.pullStart) / 1200);
-        const lead = Math.min(dist, 0.055) * ramp;
-        goal.x += (dx / dist) * lead;
-        goal.z += (dz / dist) * lead;
-      }
       const k = 45;
       const damp = 9;
       this.p.vx += ((goal.x - this.p.x) * k - this.p.vx * damp) * dt;

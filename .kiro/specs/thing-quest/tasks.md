@@ -92,7 +92,7 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 11.4 Map this room explains that the new map loads on the next entry, and points to Space setup if the browser cannot start it.
 - [x] 11.5 Move the casket and the board: squeeze a grip button beside it and carry it. Thumbstick up or down raises or lowers it, left or right turns it. Hands can pinch and carry the casket.
 - [x] 11.6 Spirit board needs both hands: pinch the planchette with both hands, or hold both triggers on it. It never moves without them.
-- [x] 11.7 It pulls: while spelling, the planchette leads the hands by up to five centimetres toward the hidden letter. Haptics quicken near it.
+- [x] 11.7 No pull: the planchette goes only where the hands take it. Haptics grow stronger and faster near the hidden letter, hum steadily over it, and the letter is taken after a short hold.
 - [x] 11.8 Questions out loud: the headset microphone records a few seconds and the server transcribes it with Deepgram. Asked for on the landing page before entering.
 
 ## 12. Fixes from the second headset pass

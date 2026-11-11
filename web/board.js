@@ -56,14 +56,8 @@
     last = now;
     let target = state.target;
     if (state.handsOn && state.pointerTarget) {
+      // It goes only where your finger takes it. No pull.
       target = state.pointerTarget;
-      // While it is spelling, it leans on your hand toward the letter it wants.
-      if (state.busy && state.guide) {
-        target = {
-          x: target.x + (state.guide.x - target.x) * 0.1,
-          y: target.y + (state.guide.y - target.y) * 0.1,
-        };
-      }
     }
     let speed = 0;
     if (target) {
@@ -111,10 +105,23 @@
     let nextPulse = 0;
     const p = Board.planchette;
     const reach = Math.max(Board.size().W, Board.size().H) * 0.6;
-    while (state.handsOn && performance.now() - start < 9000) {
+    let overSince = 0;
+    while (state.handsOn) {
       await sleep(30);
       const d = Math.hypot(c.x - p.x, c.y - p.y);
-      if (d < 14) break;
+      // Right over it: a steady buzz, and held a moment the letter is taken.
+      if (d < 16) {
+        if (!overSince) overSince = performance.now();
+        try {
+          if (!state.muted && navigator.vibrate) navigator.vibrate(60);
+        } catch (err) {
+          // Optional.
+        }
+        BoardAudio.pulse(1);
+        if (performance.now() - overSince > 550) break;
+        continue;
+      }
+      overSince = 0;
       const near = Math.max(0, 1 - d / reach);
       const now = performance.now();
       if (now > nextPulse) {
@@ -128,7 +135,7 @@
       }
     }
     state.guide = null;
-    const arrived = Math.hypot(c.x - p.x, c.y - p.y) < 14;
+    const arrived = Math.hypot(c.x - p.x, c.y - p.y) < 16;
     if (arrived) {
       try {
         if (!state.muted && navigator.vibrate) navigator.vibrate(80);
