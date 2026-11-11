@@ -338,8 +338,11 @@ app.post("/api/speak", async (req, res) => {
 // recognition (the Quest browser among them). Deepgram, same key as the voice.
 // Room reports from the Quest app, for debugging what the headset saw.
 app.post("/api/debug", (req, res) => {
-  const text = JSON.stringify(req.body || {}).slice(0, 4000);
-  console.log("quest-report " + text);
+  const text = JSON.stringify(req.body || {}).slice(0, 12000);
+  const id = Date.now().toString(36);
+  for (let i = 0; i * 3000 < text.length; i += 1) {
+    console.log("quest-report " + id + " " + i + " " + text.slice(i * 3000, (i + 1) * 3000));
+  }
   res.json({ ok: true });
 });
 

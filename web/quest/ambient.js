@@ -66,9 +66,15 @@ export class AmbientMode {
       p.y = room.floorY;
       if (room.insideRoom(p, 0.2) && !room.insideFurniture(p) && !room.insideSolid(p.clone().setY(p.y + 0.03))) return p;
     }
-    const p = head.clone().addScaledVector(fwd, 1.0);
-    p.y = room.floorY;
-    return p;
+    // Nothing clear ahead: the nearest clear floor anywhere in the room.
+    let best = null;
+    for (let i = 0; i < 60; i += 1) {
+      const p = room.randomFloorPoint(Math.random, head, 2.5);
+      if (!room.insideRoom(p, 0.2)) continue;
+      const d = p.distanceTo(head.clone().addScaledVector(fwd, distance));
+      if (!best || d < best.d) best = { p, d };
+    }
+    return best ? best.p : room.randomFloorPoint(Math.random);
   }
 
   // A floor point behind the viewer, so he is never seen arriving.

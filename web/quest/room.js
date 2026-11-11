@@ -68,6 +68,12 @@ export class Room {
       return len > 0.4 ? c.clone().addScaledVector(d, (len - 0.3) / len) : p;
     });
     this.boundaryRadius = Math.max(...this.boundary.map((p) => Math.hypot(p.x - c.x, p.z - c.z)));
+    // A stationary boundary is a small circle around a seated player. Hiding
+    // inside it would mean hiding at your feet, so only a roomscale boundary counts.
+    if (this.boundaryRadius < 1.4) {
+      this.stationary = true;
+      this.boundary = null;
+    }
   }
 
   update(frame, refSpace) {

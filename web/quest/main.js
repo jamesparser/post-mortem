@@ -167,6 +167,15 @@ export class App {
         head: v(this.camera.getWorldPosition(new THREE.Vector3())),
         thing: v(this.mover.position),
         thingVisible: Boolean(this.thing.root.visible),
+        stationary: Boolean(r.stationary),
+        geo: tag === "start" || tag === "hide-spot" ? {
+          floor: (r.floorPolygon || []).map((p) => [+p.x.toFixed(2), +p.z.toFixed(2)]),
+          walls: r.wallSegments().map(([a, b]) => [+a.x.toFixed(2), +a.z.toFixed(2), +b.x.toFixed(2), +b.z.toFixed(2)]),
+          surfaces: r.planeList()
+            .filter((p) => p.orientation === "horizontal" && p.label !== "floor" && p.label !== "ceiling")
+            .map((p) => ({ l: p.label, y: +p.y.toFixed(2), pts: p.world.map((q) => [+q.x.toFixed(2), +q.z.toFixed(2)]) })),
+          meshes: r.meshList().filter((x) => x.label !== "global mesh").map((x) => ({ l: x.label, min: [x.box.min.x, x.box.min.y, x.box.min.z].map((n) => +n.toFixed(2)), max: [x.box.max.x, x.box.max.y, x.box.max.z].map((n) => +n.toFixed(2)) })),
+        } : undefined,
         ...extra,
       };
       fetch("/api/debug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
