@@ -109,7 +109,12 @@ const BoardAudio = (() => {
   }
 
   // Real spoken lines, from Deepgram, slowed and wet with a stone reverb.
-  const LINES = ["Behind you.", "It is cold here.", "Do not turn around.", "We can see you.", "Stay with us.", "Who is that beside you?", "Let me in."];
+  const LINES = [
+    "There is someone standing behind you.", "Why did you let me die?", "I can see you from here.",
+    "Do not turn around. Not yet.", "Count the people in the room. Now count again.", "Something followed you home.",
+    "It is so dark down here.", "Can you hear me breathing?", "We never left this house.", "Help me. It hurts.",
+    "I am right next to you.", "Say my name.", "You will be joining us soon.", "Do not take your finger off the board.",
+  ]
   const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-orpheus-en"];
   const spoken = {};
   let verb = null;
@@ -152,10 +157,13 @@ const BoardAudio = (() => {
       const buffer = await spoken[key];
       const where = PLACES[place || ["left", "right", "behind"][Math.floor(Math.random() * 3)]];
       const done = [];
-      for (const [delay, vol, detune] of [[0, 1.1, 1], [0.035, 0.35, 0.97]]) {
+      const rate = 0.7 + Math.random() * 0.14;
+      const layers = [[0, 1.1, 1], [0.035, 0.35, 0.97]];
+      if (Math.random() < 0.45) layers.push([0.02, 0.45, 0.62]);
+      for (const [delay, vol, detune] of layers) {
         const src = ctx.createBufferSource();
         src.buffer = buffer;
-        src.playbackRate.value = 0.82 * detune;
+        src.playbackRate.value = rate * detune;
         const lp = ctx.createBiquadFilter();
         lp.type = "lowpass";
         lp.frequency.value = 3200;

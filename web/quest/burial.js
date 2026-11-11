@@ -423,10 +423,10 @@ export class BurialMode {
     return p;
   }
 
-  // Something under the floor will not stay quiet. It knocks, it shouts,
-  // muffled through the lid, and the controllers buck as if it is trying to
-  // get out. Then a heartbeat, three or four times, weaker each time. Then
-  // nothing, and it does not come back. The device stays dead.
+  // Something under the floor will not stay quiet. A heartbeat, four times,
+  // weaker each time. A long pause. Then it knocks, shouts through the lid,
+  // and the controllers buck as if it is trying to get out. Then nothing,
+  // and it does not come back. The device stays dead.
   beginHeartbeat() {
     const { audio, haptics, camera, caption, setHint } = this.ctx;
     this.state = "heartbeat";
@@ -442,27 +442,10 @@ export class BurialMode {
       haptics(0.95 * strength, 140);
       this.shake = 0.35;
     };
-    // Knocking from inside.
-    [0, 380, 760, 1700, 2000].forEach((t, i) => at(t, () => knock(i < 3 ? 1 : 0.8)));
-    // A muffled shout.
-    at(2700, () => {
-      haptics(1, 450);
-      this.shake = 0.6;
-      audio.speech(SHOUT, near, { voice: SHOUT_VOICE, rate: 0.95, volume: 1.6, lowpass: 650, dry: true }).then((ok) => {
-        if (!ok) audio.oneShot("groans", near, 0.9, 1.2);
-      });
-    });
-    // Scrabbling and one long buck of the controllers, as if it is trying to get out.
-    at(4900, () => {
-      audio.oneShot("scuffle", near, 0.8, 0.8);
-      haptics(1, 900);
-      this.shake = 0.9;
-    });
-    // Then the heartbeat, slowing and fading.
-    const beats = 3 + (Math.random() < 0.5 ? 1 : 0);
-    const start = 7200;
+    // First the heartbeat, slowing and fading, as if it is ending.
+    const beats = 4;
     let period = 1000;
-    let t = start;
+    let t = 0;
     for (let i = 0; i < beats; i += 1) {
       const strength = 1 - i * 0.18;
       at(t, () => {
@@ -476,8 +459,28 @@ export class BurialMode {
         haptics(0.65 * strength, 110);
       });
       t += period;
-      period += 250;
+      period += 300;
     }
+    // A long pause. You think it is over.
+    t += 3000;
+    // Then it knocks from inside and shouts, muffled through the lid.
+    [0, 380, 760].forEach((d) => at(t + d, () => knock(1)));
+    at(t + 1200, () => {
+      haptics(1, 450);
+      this.shake = 0.6;
+      audio.speech(SHOUT, near, { voice: SHOUT_VOICE, rate: 0.95, volume: 1.6, lowpass: 650, dry: true }).then((ok) => {
+        if (!ok) audio.oneShot("groans", near, 0.9, 1.2);
+      });
+    });
+    // Scrabbling, and one long buck of the controllers, as if it is trying to get out.
+    at(t + 3600, () => {
+      audio.oneShot("scuffle", near, 0.8, 0.8);
+      haptics(1, 900);
+      this.shake = 0.9;
+    });
+    [4700, 5000].forEach((d) => at(t + d, () => knock(0.6)));
+    // Then nothing. It does not come back.
+    t += 5600;
     this.timer = (t + 2600) / 1000;
     caption.hide();
   }

@@ -223,7 +223,7 @@ export class SpiritBoardMode {
     mover.hide();
     audio.bed("storm-bed", 0.05, 3);
     scene.add(this.root);
-    this.ghost = new Ghost(this.ctx, { firstDelay: 22, minGap: 35, maxGap: 55 });
+    this.ghost = new Ghost(this.ctx, { firstDelay: 12, minGap: 20, maxGap: 35 });
     this.placeOnTable(camera, room);
     this.ctx.movable = this.root;
     this.ctx.movableReach = 0.45;

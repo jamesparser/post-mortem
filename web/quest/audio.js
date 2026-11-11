@@ -260,6 +260,8 @@ export class AudioEngine {
     };
     const main = play(0, volume, 1);
     play(0.035, volume * 0.35, 0.97);
+    // Sometimes something much lower speaks along with it.
+    if (options.demon) play(0.02, volume * 0.45, 0.62);
     return new Promise((resolve) => {
       main.onended = () => resolve(true);
     });

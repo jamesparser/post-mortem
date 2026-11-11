@@ -6,15 +6,25 @@
 import * as THREE from "three";
 
 export const SPIRIT_LINES = [
-  "Behind you.",
-  "It is cold here.",
-  "Do not turn around.",
-  "We can see you.",
-  "Stay with us.",
-  "Who is that beside you?",
-  "You left the door open.",
-  "Let me in.",
-];
+  "There is someone standing behind you.",
+  "Why did you let me die?",
+  "I can see you from here.",
+  "Do not turn around. Not yet.",
+  "Count the people in the room. Now count again.",
+  "Something followed you home.",
+  "It is so dark down here.",
+  "Your hands are so warm.",
+  "Can you hear me breathing?",
+  "We never left this house.",
+  "Help me. It hurts.",
+  "I am right next to you.",
+  "Say my name.",
+  "You will be joining us soon.",
+  "I was here first.",
+  "Do not let go of the board.",
+  "Turn around. Slowly.",
+  "It is cold where you are standing.",
+]
 
 const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-orpheus-en"];
 
@@ -22,6 +32,8 @@ function rand(a, b) {
   return a + Math.random() * (b - a);
 }
 
+// A shadow figure: a dark smoky body that reads clearly against a bright
+// real room, with a pale face and black hollows where the eyes should be.
 export function spiritTexture() {
   const w = 256;
   const h = 640;
@@ -29,39 +41,72 @@ export function spiritTexture() {
   c.width = w;
   c.height = h;
   const g = c.getContext("2d");
-  const pale = (a) => "rgba(226,222,210," + a + ")";
   const cx = w / 2;
-  g.filter = "blur(6px)";
-  let grad = g.createLinearGradient(0, h * 0.18, 0, h);
-  grad.addColorStop(0, pale(0.55));
-  grad.addColorStop(0.55, pale(0.22));
-  grad.addColorStop(1, pale(0));
+  const dark = (a) => "rgba(14,12,11," + a + ")";
+  g.filter = "blur(7px)";
+  let grad = g.createLinearGradient(0, h * 0.16, 0, h);
+  grad.addColorStop(0, dark(0.92));
+  grad.addColorStop(0.6, dark(0.7));
+  grad.addColorStop(1, dark(0));
   g.fillStyle = grad;
   g.beginPath();
-  g.moveTo(cx - 30, h * 0.2);
-  g.bezierCurveTo(cx - 82, h * 0.23, cx - 86, h * 0.36, cx - 76, h * 0.55);
-  g.bezierCurveTo(cx - 66, h * 0.8, cx - 46, h * 0.97, cx, h);
-  g.bezierCurveTo(cx + 46, h * 0.97, cx + 66, h * 0.8, cx + 76, h * 0.55);
-  g.bezierCurveTo(cx + 86, h * 0.36, cx + 82, h * 0.23, cx + 30, h * 0.2);
+  g.moveTo(cx - 34, h * 0.19);
+  g.bezierCurveTo(cx - 90, h * 0.22, cx - 92, h * 0.36, cx - 80, h * 0.56);
+  g.bezierCurveTo(cx - 70, h * 0.8, cx - 48, h * 0.98, cx, h);
+  g.bezierCurveTo(cx + 48, h * 0.98, cx + 70, h * 0.8, cx + 80, h * 0.56);
+  g.bezierCurveTo(cx + 92, h * 0.36, cx + 90, h * 0.22, cx + 34, h * 0.19);
   g.fill();
-  g.filter = "blur(4px)";
-  grad = g.createRadialGradient(cx, h * 0.12, 4, cx, h * 0.12, 48);
-  grad.addColorStop(0, pale(0.8));
-  grad.addColorStop(1, pale(0));
-  g.fillStyle = grad;
-  g.beginPath();
-  g.ellipse(cx, h * 0.12, 34, 44, 0.08, 0, Math.PI * 2);
-  g.fill();
-  g.filter = "blur(3px)";
-  g.fillStyle = "rgba(20,18,16,0.55)";
+  // Long arms hanging past the hips.
+  g.strokeStyle = dark(0.8);
+  g.lineWidth = 18;
+  g.lineCap = "round";
   for (const s of [-1, 1]) {
     g.beginPath();
-    g.ellipse(cx + s * 13, h * 0.115, 7, 9, 0, 0, Math.PI * 2);
+    g.moveTo(cx + s * 70, h * 0.24);
+    g.quadraticCurveTo(cx + s * 92, h * 0.42, cx + s * 78, h * 0.62);
+    g.stroke();
+  }
+  // Hair falling around the face.
+  g.filter = "blur(4px)";
+  g.fillStyle = dark(0.95);
+  g.beginPath();
+  g.ellipse(cx, h * 0.13, 46, 62, 0, 0, Math.PI * 2);
+  g.fill();
+  // A pale face, narrow and long, tilted, half hidden by hair.
+  g.save();
+  g.translate(cx + 3, h * 0.14);
+  g.rotate(0.12);
+  grad = g.createRadialGradient(0, 0, 3, 0, 0, 30);
+  grad.addColorStop(0, "rgba(206,202,192,0.92)");
+  grad.addColorStop(1, "rgba(196,192,182,0)");
+  g.fillStyle = grad;
+  g.beginPath();
+  g.ellipse(0, 0, 19, 32, 0, 0, Math.PI * 2);
+  g.fill();
+  // Eyes that are only holes, running down a little, and a long open mouth.
+  g.filter = "blur(2px)";
+  g.fillStyle = "rgba(0,0,0,0.92)";
+  for (const s of [-1, 1]) {
+    g.beginPath();
+    g.ellipse(s * 7.5, -6, 4.5, 7, 0, 0, Math.PI * 2);
     g.fill();
+    g.fillRect(s * 7.5 - 1.2, -2, 2.4, 10 + Math.random() * 6);
   }
   g.beginPath();
-  g.ellipse(cx, h * 0.165, 6, 9, 0, 0, Math.PI * 2);
+  g.ellipse(0, 15, 4, 11, 0, 0, Math.PI * 2);
   g.fill();
+  g.restore();
+  // Strands of hair falling across the face.
+  g.filter = "blur(1.5px)";
+  g.strokeStyle = "rgba(8,7,6,0.6)";
+  for (const off of [-17, -11, 9, 15, 20]) {
+    const x = cx + off + (Math.random() - 0.5) * 3;
+    g.lineWidth = 1 + Math.random() * 1.6;
+    g.beginPath();
+    g.moveTo(x, h * 0.07);
+    g.bezierCurveTo(x + (Math.random() - 0.5) * 10, h * 0.13, x + (Math.random() - 0.5) * 14, h * 0.19, x + (Math.random() - 0.5) * 8, h * 0.24);
+    g.stroke();
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -76,7 +121,7 @@ export class Ghost {
     this.clock = 0;
     this.nextAt = this.firstDelay + rand(-4, 5);
     this.mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.6, 1.6),
+      new THREE.PlaneGeometry(0.62, 1.62),
       new THREE.MeshBasicMaterial({ map: spiritTexture(), transparent: true, opacity: 0, depthWrite: false })
     );
     this.mesh.visible = false;
@@ -95,15 +140,16 @@ export class Ghost {
     const head = camera.getWorldPosition(new THREE.Vector3());
     const fwd = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
     const side = Math.random() < 0.5 ? 1 : -1;
-    const angle = side * THREE.MathUtils.degToRad(rand(35, 50));
+    // Off to one side, well inside the Quest view but not where you are looking.
+    const angle = side * THREE.MathUtils.degToRad(rand(25, 40));
     const dir = fwd.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-    const p = head.clone().addScaledVector(dir, rand(1.0, 1.4));
-    const floor = room && Number.isFinite(room.floorY) ? room.floorY : head.y - 1.6;
-    p.y = floor + 0.8;
+    const p = head.clone().addScaledVector(dir, rand(1.3, 1.9));
+    // Placed by your head height, so a wrong floor never hides it.
+    p.y = head.y - 0.72;
     this.mesh.position.copy(p);
     this.mesh.visible = true;
     this.mesh.material.opacity = 0;
-    this.life = rand(2.5, 4.5);
+    this.life = rand(4, 7);
     this.seen = false;
     this.nextAt = this.clock + rand(this.minGap, this.maxGap);
     whisper(this.ctx, null, p);
@@ -124,11 +170,15 @@ export class Ghost {
     const angle = look.angleTo(p.clone().sub(head).normalize());
     this.life -= dt;
     const m = this.mesh.material;
-    if (angle < 0.3 || this.life <= 0) {
-      m.opacity = Math.max(0, m.opacity - dt * 3);
+    // Gone the instant you look straight at it.
+    if (angle < 0.2 || this.life <= 0) {
+      m.opacity = Math.max(0, m.opacity - dt * (angle < 0.2 ? 6 : 2));
       if (m.opacity <= 0.01) this.mesh.visible = false;
     } else {
-      m.opacity = Math.min(0.55, m.opacity + dt * 0.7) * (0.85 + Math.random() * 0.15);
+      m.opacity = Math.min(0.88, m.opacity + dt * 0.9);
+      if (Math.random() < 0.04) m.opacity *= 0.4;
+      // A slow sway, as if it is breathing.
+      this.mesh.position.y += Math.sin(this.clock * 1.3) * 0.0006;
     }
   }
 }
@@ -143,7 +193,11 @@ export async function whisper(ctx, text, near) {
   const at = near
     ? head.clone().lerp(near, 0.35)
     : head.clone().addScaledVector(fwd.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI + rand(-0.9, 0.9)), 0.35);
-  const ok = await audio.speech(line, at, { voice: VOICES[Math.floor(Math.random() * VOICES.length)] });
+  const ok = await audio.speech(line, at, {
+    voice: VOICES[Math.floor(Math.random() * VOICES.length)],
+    rate: rand(0.7, 0.84),
+    demon: Math.random() < 0.45,
+  });
   if (!ok) audio.oneShot("whispers", at, 0.8);
   return ok;
 }

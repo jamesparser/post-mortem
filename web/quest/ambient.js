@@ -38,7 +38,7 @@ export class AmbientMode {
     ]);
     room.setStart(camera.getWorldPosition(new THREE.Vector3()));
     // Thing is not the only one in the house.
-    this.ghost = new Ghost(this.ctx, { firstDelay: 45, minGap: 60, maxGap: 110 });
+    this.ghost = new Ghost(this.ctx, { firstDelay: 30, minGap: 45, maxGap: 80 });
   }
 
   exit() {
