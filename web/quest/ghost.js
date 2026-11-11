@@ -43,7 +43,7 @@ export const SPIRIT_LINES = [
   "The thing in the drawer is not dead either.",
 ]
 
-const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-orpheus-en"];
+const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-ophelia-en", "aura-2-selene-en", "aura-2-pandora-en", "aura-2-helena-en", "aura-2-orpheus-en", "aura-2-pluto-en", "aura-2-draco-en", "aura-2-atlas-en"];
 
 function rand(a, b) {
   return a + Math.random() * (b - a);
@@ -202,19 +202,48 @@ export class Ghost {
 
 // A spoken line from just behind one ear: a real voice, slowed, low and wet
 // with reverb. Falls back to the synthesized whispers if the voice is offline.
+// Where a voice comes from, and how it moves. Some stay put behind one ear,
+// some pass behind your head from one ear to the other, some circle you all
+// the way round, and some come from a figure you can see. HRTF does the rest.
+function voicePath(head, fwd, near) {
+  const around = (angle, radius, dy = 0) =>
+    head.clone().addScaledVector(fwd.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angle), radius).add(new THREE.Vector3(0, dy, 0));
+  if (near) return [head.clone().lerp(near, 0.4)];
+  const roll = Math.random();
+  const side = Math.random() < 0.5 ? 1 : -1;
+  if (roll < 0.3) {
+    // Fixed, close behind one ear.
+    return [around(Math.PI + side * rand(0.4, 1.0), 0.35)];
+  }
+  if (roll < 0.65) {
+    // From beside one ear, behind the head, to the other ear.
+    const pts = [];
+    for (let i = 0; i <= 6; i += 1) pts.push(around(side * (Math.PI / 2 + (Math.PI * i) / 6), 0.45, -0.05));
+    return pts;
+  }
+  if (roll < 0.85) {
+    // All the way round.
+    const pts = [];
+    const start = Math.PI + rand(-0.5, 0.5);
+    for (let i = 0; i <= 10; i += 1) pts.push(around(start + side * ((Math.PI * 2 * i) / 10), 0.6));
+    return pts;
+  }
+  // Starts across the room behind you and comes right up to your ear.
+  return [around(Math.PI + side * 0.6, 3), around(Math.PI + side * 0.9, 1.4), around(side * (Math.PI / 2 + 0.3), 0.25)];
+}
+
 export async function whisper(ctx, text, near) {
   const { audio, camera } = ctx;
   const line = text || SPIRIT_LINES[Math.floor(Math.random() * SPIRIT_LINES.length)];
   const head = camera.getWorldPosition(new THREE.Vector3());
   const fwd = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
-  const at = near
-    ? head.clone().lerp(near, 0.35)
-    : head.clone().addScaledVector(fwd.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI + rand(-0.9, 0.9)), 0.35);
-  const ok = await audio.speech(line, at, {
+  const path = voicePath(head, fwd, near);
+  const ok = await audio.speech(line, path[0], {
     voice: VOICES[Math.floor(Math.random() * VOICES.length)],
     rate: rand(0.7, 0.84),
     demon: Math.random() < 0.45,
+    path,
   });
-  if (!ok) audio.oneShot("whispers", at, 0.8);
+  if (!ok) audio.oneShot("whispers", path[0], 0.8);
   return ok;
 }

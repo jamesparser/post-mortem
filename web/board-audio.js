@@ -83,6 +83,22 @@ const BoardAudio = (() => {
       src.connect(g);
       if (where) {
         const p = panner(where[0], where[1], where[2]);
+        if (path.length > 1 && p.positionX) {
+          const t0 = ctx.currentTime + delay;
+          const span = buffer.duration / (rate * detune);
+          path.forEach((q, i) => {
+            const t = t0 + (span * i) / (path.length - 1);
+            if (i === 0) {
+              p.positionX.setValueAtTime(q[0], t);
+              p.positionY.setValueAtTime(q[1], t);
+              p.positionZ.setValueAtTime(q[2], t);
+            } else {
+              p.positionX.linearRampToValueAtTime(q[0], t);
+              p.positionY.linearRampToValueAtTime(q[1], t);
+              p.positionZ.linearRampToValueAtTime(q[2], t);
+            }
+          });
+        }
         g.connect(p);
         p.connect(options.bus || bedGain);
       } else {
@@ -116,7 +132,7 @@ const BoardAudio = (() => {
     "I am right next to you.", "Say my name.", "You will be joining us soon.", "Do not take your finger off the board.",
     "We are watching you.", "I live under your bed.", "I sleep in your closet. You always leave the door open for me.", "I like to watch you sleep.", "Who were you talking to just now?", "Check under the bed. I will wait.", "Do not look in the mirror tonight.", "There is one more of us than there was a minute ago.", "You cannot see me. I can see you.", "I have been in the walls since before you moved in.", "We hear you at night.", "Leave the light on. It will not help.", "Come and play with us.", "Come down to the basement.", "I read every message you deleted.", "Your old phone is still listening.", "The thing in the drawer is not dead either.",
   ]
-  const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-orpheus-en"];
+  const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-ophelia-en", "aura-2-selene-en", "aura-2-pandora-en", "aura-2-helena-en", "aura-2-orpheus-en", "aura-2-pluto-en", "aura-2-draco-en", "aura-2-atlas-en"];
   const spoken = {};
   let verb = null;
 
@@ -157,6 +173,14 @@ const BoardAudio = (() => {
       }
       const buffer = await spoken[key];
       const where = PLACES[place || ["left", "right", "behind"][Math.floor(Math.random() * 3)]];
+      // Most voices move: past the back of the head from ear to ear, or all
+      // the way round. The listener sits at the origin facing the screen.
+      const path = [];
+      const roll = place ? 1 : Math.random();
+      const side = Math.random() < 0.5 ? 1 : -1;
+      const around = (ang, r) => [Math.sin(ang) * r, 0.05, Math.cos(ang) * r];
+      if (roll < 0.4) for (let i = 0; i <= 6; i += 1) path.push(around(side * (Math.PI / 2 - (Math.PI * i) / 6), 0.5));
+      else if (roll < 0.65) for (let i = 0; i <= 10; i += 1) path.push(around(side * ((Math.PI * 2 * i) / 10), 0.6));
       const done = [];
       const rate = 0.7 + Math.random() * 0.14;
       const layers = [[0, 1.1, 1], [0.035, 0.35, 0.97]];
@@ -173,6 +197,22 @@ const BoardAudio = (() => {
         src.connect(lp);
         lp.connect(g);
         const p = panner(where[0], where[1], where[2]);
+        if (path.length > 1 && p.positionX) {
+          const t0 = ctx.currentTime + delay;
+          const span = buffer.duration / (rate * detune);
+          path.forEach((q, i) => {
+            const t = t0 + (span * i) / (path.length - 1);
+            if (i === 0) {
+              p.positionX.setValueAtTime(q[0], t);
+              p.positionY.setValueAtTime(q[1], t);
+              p.positionZ.setValueAtTime(q[2], t);
+            } else {
+              p.positionX.linearRampToValueAtTime(q[0], t);
+              p.positionY.linearRampToValueAtTime(q[1], t);
+              p.positionZ.linearRampToValueAtTime(q[2], t);
+            }
+          });
+        }
         g.connect(p);
         p.connect(whisperGain);
         g.connect(reverb());

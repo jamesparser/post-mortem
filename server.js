@@ -301,7 +301,11 @@ app.post("/api/speak", async (req, res) => {
 
     // The priest is the configured voice. The spirits may ask for one of a
     // few other Aura voices, chosen from a fixed list and nothing else.
-    const SPIRIT_VOICES = ["aura-2-luna-en", "aura-2-orpheus-en", "aura-2-hera-en", "aura-2-zeus-en"];
+    const SPIRIT_VOICES = [
+      "aura-2-luna-en", "aura-2-orpheus-en", "aura-2-hera-en", "aura-2-zeus-en",
+      "aura-2-ophelia-en", "aura-2-selene-en", "aura-2-pluto-en", "aura-2-draco-en",
+      "aura-2-pandora-en", "aura-2-thalia-en", "aura-2-helena-en", "aura-2-atlas-en",
+    ];
     const asked = String((req.body && req.body.voice) || "");
     const voice = SPIRIT_VOICES.includes(asked) ? asked : config.deepgramVoice;
     const model = voice.startsWith("aura") ? voice : "aura-" + voice;

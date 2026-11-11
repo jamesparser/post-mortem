@@ -245,10 +245,25 @@ export class AudioEngine {
       src.connect(lp);
       lp.connect(gain);
       const pan = this.panner(0.5);
+      const path = options.path && options.path.length > 1 ? options.path : null;
       if (pan.positionX) {
         pan.positionX.value = at.x;
         pan.positionY.value = at.y;
         pan.positionZ.value = at.z;
+        // A moving voice: glide through the points over the length of the line.
+        if (path) {
+          const t0 = this.ctx.currentTime + delay;
+          const span = buf.duration / (rate * detune);
+          pan.positionX.setValueAtTime(at.x, t0);
+          pan.positionY.setValueAtTime(at.y, t0);
+          pan.positionZ.setValueAtTime(at.z, t0);
+          path.forEach((p, i) => {
+            const t = t0 + (span * i) / (path.length - 1);
+            pan.positionX.linearRampToValueAtTime(p.x, t);
+            pan.positionY.linearRampToValueAtTime(p.y, t);
+            pan.positionZ.linearRampToValueAtTime(p.z, t);
+          });
+        }
       } else {
         pan.setPosition(at.x, at.y, at.z);
       }
