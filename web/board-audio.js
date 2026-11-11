@@ -134,6 +134,7 @@ const BoardAudio = (() => {
   ]
   const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-ophelia-en", "aura-2-selene-en", "aura-2-pandora-en", "aura-2-helena-en", "aura-2-orpheus-en", "aura-2-pluto-en", "aura-2-draco-en", "aura-2-atlas-en"];
   const spoken = {};
+  let lastSpoken = -40000;
   let verb = null;
 
   function reverb() {
@@ -236,14 +237,17 @@ const BoardAudio = (() => {
   function scheduleAmbience() {
     later(() => {
       const roll = Math.random();
-      if (roll < 0.3) speak();
+      if (roll < 0.2 && performance.now() - lastSpoken > 40000) {
+        lastSpoken = performance.now();
+        speak();
+      }
       else if (roll < 0.45) whisper();
       else if (roll < 0.6) circle();
       else if (roll < 0.72) play("breath", PLACES.behind, 0.55, { slice: 2 });
       else if (roll < 0.88) play("footsteps-wood", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.5, { slice: 3 });
       else play("groans", Math.random() < 0.5 ? PLACES.farLeft : PLACES.farRight, 0.5);
       scheduleAmbience();
-    }, 7000, 15000);
+    }, 14000, 26000);
   }
 
   function roomTone() {

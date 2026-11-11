@@ -169,7 +169,8 @@ export class Ghost {
     this.life = rand(4, 7);
     this.seen = false;
     this.nextAt = this.clock + rand(this.minGap, this.maxGap);
-    whisper(this.ctx, null, p);
+    // Not every figure speaks. Most are silent.
+    if (Math.random() < 0.35) whisper(this.ctx, null, p);
     return true;
   }
 
@@ -232,8 +233,18 @@ function voicePath(head, fwd, near) {
   return [around(Math.PI + side * 0.6, 3), around(Math.PI + side * 0.9, 1.4), around(side * (Math.PI / 2 + 0.3), 0.25)];
 }
 
+// Random lines are rationed: at least this long between them. Answers from
+// the board are always spoken.
+const LINE_GAP = 40000;
+let lastLine = -LINE_GAP;
+
 export async function whisper(ctx, text, near) {
   const { audio, camera } = ctx;
+  const now = performance.now();
+  if (!text) {
+    if (now - lastLine < LINE_GAP) return false;
+    lastLine = now;
+  }
   const line = text || SPIRIT_LINES[Math.floor(Math.random() * SPIRIT_LINES.length)];
   const head = camera.getWorldPosition(new THREE.Vector3());
   const fwd = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();

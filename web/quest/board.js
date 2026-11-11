@@ -579,11 +579,11 @@ export class SpiritBoardMode {
 
     // Ambient presence: sounds behind and around, now and then.
     if (performance.now() > this.nextAmbience) {
-      this.nextAmbience = performance.now() + rand(7000, 14000);
+      this.nextAmbience = performance.now() + rand(14000, 26000);
       const roll = Math.random();
       // Never talk over the visitor while the microphone is open.
-      if (roll < 0.4 && !this.listening) whisper(this.ctx);
-      else if (roll < 0.65) this.circleWhisper();
+      if (roll < 0.25 && !this.listening) whisper(this.ctx);
+      else if (roll < 0.5) this.circleWhisper();
       else if (roll < 0.85) this.ctx.audio.oneShot("footsteps-wood", this.aroundHead(rand(2.4, 3.9), rand(2.5, 4)), 0.6);
       else this.ctx.audio.oneShot("breath", this.aroundHead(Math.PI, 0.25), 0.6);
     }

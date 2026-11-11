@@ -114,3 +114,4 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 12.15 Eighteen spirit lines, darker (Why did you let me die. Count the people in the room. Now count again.), slowed by a random amount, sometimes with a much lower voice speaking along.
 - [x] 12.16 Seventeen more lines: under the bed, in the closet, in the walls, watching you sleep, and the dead devices still listening.
 - [x] 12.17 Ten spirit voices, female and male. Voices move: fixed behind one ear, passing behind the head from ear to ear, circling all the way round, or coming from across the room right up to the ear. Same on the web board.
+- [x] 12.18 Fewer voices: at least forty seconds between random spoken lines, ambience every 14 to 26 seconds, and only about a third of the figures speak. Board answers are always spoken.
