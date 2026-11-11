@@ -105,3 +105,4 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 12.6 Spirit board answers say plainly what you asked and what it answered, then a spirit voice speaks the answer from behind you.
 - [x] 12.7 Spoken spirit lines from Deepgram voices, slowed, low passed and doubled in a stone reverb, every seven to fourteen seconds on the board, never while the microphone is open.
 - [x] 12.8 Shared ghost module: a figure 35 to 50 degrees off the gaze, one metre or so away, inside the field of view. First at about 22 seconds on the board, about 45 seconds in Thing's house. Gone when you look at it.
+- [x] 12.9 A controls card stays low in view the whole time: each mode and each step sets its own lines (carry, close the lid, cover your eyes, find him, hands on the planchette, ask now). Menus, setting the floor and carrying override it. The menu buttons are always listed.

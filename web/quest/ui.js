@@ -184,6 +184,97 @@ export class Caption {
   }
 }
 
+// A small card of controls that stays low in view the whole time you play,
+// so you always know what to do next. Each mode, and each step in it, sets
+// its own lines. Looking down at it brings it closer to readable.
+export class Hint {
+  constructor() {
+    this.canvas = document.createElement("canvas");
+    this.canvas.width = 1024;
+    this.canvas.height = 600;
+    this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
+    this.mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.62, 0.363),
+      new THREE.MeshBasicMaterial({ map: this.texture, transparent: true, depthTest: false, opacity: 0 })
+    );
+    this.mesh.renderOrder = 20;
+    this.anchor = new THREE.Vector3();
+    this.key = "";
+    this.target = 0;
+  }
+
+  // title: a few words. lines: up to four short instructions.
+  set(title, lines) {
+    const key = title + "|" + (lines || []).join("|");
+    if (key === this.key) return;
+    this.key = key;
+    if (!title) {
+      this.target = 0;
+      return;
+    }
+    const ctx = this.canvas.getContext("2d");
+    ctx.clearRect(0, 0, 1024, 600);
+    ctx.fillStyle = "rgba(10,9,8,0.72)";
+    const r = 28;
+    // Measure first so the card fits its text.
+    ctx.font = "32px system-ui, sans-serif";
+    const rows = [];
+    for (const line of (lines || []).slice(0, 6)) {
+      wrapLines(ctx, line, 920).slice(0, 3).forEach((l, i) => rows.push({ text: l, first: i === 0 }));
+      rows.push({ gap: true });
+    }
+    rows.pop();
+    let height = 104;
+    for (const row of rows) height += row.gap ? 10 : 40;
+    height = Math.min(596, height + 24);
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.arcTo(1024, 0, 1024, height, r);
+    ctx.arcTo(1024, height, 0, height, r);
+    ctx.arcTo(0, height, 0, 0, r);
+    ctx.arcTo(0, 0, 1024, 0, r);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(200,162,74,0.55)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.textAlign = "left";
+    ctx.fillStyle = GOLD;
+    ctx.font = "600 30px system-ui, sans-serif";
+    ctx.fillText(title.toUpperCase(), 44, 62);
+    ctx.fillStyle = INK;
+    ctx.font = "32px system-ui, sans-serif";
+    let y = 112;
+    for (const row of rows) {
+      if (row.gap) {
+        y += 10;
+        continue;
+      }
+      if (y > 586) break;
+      ctx.fillText((row.first ? "\u2022  " : "    ") + row.text, 40, y);
+      y += 40;
+    }
+    this.texture.needsUpdate = true;
+    this.target = 1;
+  }
+
+  update(camera, dt, hidden) {
+    const m = this.mesh.material;
+    const goalOpacity = hidden ? 0 : this.target * 0.92;
+    m.opacity += (goalOpacity - m.opacity) * Math.min(1, dt * 4);
+    this.mesh.visible = m.opacity > 0.01;
+    const pos = camera.getWorldPosition(new THREE.Vector3());
+    const dir = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+    const goal = pos.clone().addScaledVector(dir, 0.95).add(new THREE.Vector3(0, -0.5, 0));
+    if (this.anchor.distanceTo(goal) > 0.3 || !this.placed) {
+      this.anchor.copy(goal);
+      this.placed = true;
+    }
+    this.mesh.position.lerp(this.anchor, Math.min(1, dt * 2.5));
+    this.mesh.lookAt(pos);
+  }
+}
+
 // A printed program for the burial. Paper, black ink, words appear as spoken.
 export class Program {
   constructor() {

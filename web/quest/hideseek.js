@@ -65,6 +65,7 @@ export class HideSeekMode {
     caption.show("He wants to play hide and seek. He hides. You seek.", 3.5, true);
     this.state = "intro";
     this.timer = 3.8;
+    this.ctx.setHint("Hide and seek", ["Thing hides. You seek.", "First he gets 30 seconds. Keep your eyes covered."]);
   }
 
   exit() {
@@ -140,6 +141,10 @@ export class HideSeekMode {
       if (this.timer <= 0) {
         this.state = "hiding";
         this.timer = this.length.hide;
+        this.ctx.setHint("He is hiding", [
+          "Cover your eyes: hands over the headset, or look at the floor.",
+          "If you peek he freezes and picks a new spot.",
+        ]);
         this.arrived = false;
         this.lastShownSecond = -1;
         this.sendToSpot();
@@ -234,6 +239,11 @@ export class HideSeekMode {
   startHunt() {
     const { audio, caption, mover } = this.ctx;
     this.state = "hunt";
+    this.ctx.setHint("Your turn: find him", [
+      "Walk around your room and look low and high: under tables, on counters, behind things.",
+      "Touch him with a hand or a controller to win.",
+      "Listen: he breathes, and his nails tap now and then.",
+    ]);
     this.huntTime = 0;
     this.lastShownSecond = this.length.hunt;
     audio.oneShot("chime", null, 0.4);
@@ -257,6 +267,7 @@ export class HideSeekMode {
   onFound() {
     const { mover, audio, caption, haptics } = this.ctx;
     this.state = "caught";
+    this.ctx.setHint("You found him", ["Another round is in the menu."]);
     this.timer = 2.6;
     mover.restPose = "squirm";
     audio.oneShot("sting", mover.position, 0.35, 1.1);
@@ -273,6 +284,7 @@ export class HideSeekMode {
   onTimeout() {
     const { mover, audio, caption, camera, haptics } = this.ctx;
     this.state = "scared";
+    this.ctx.setHint("He found you", ["Another round is in the menu."]);
     this.timer = 3.2;
     if (this.breath) this.breath.setGain(0, 0.1);
     mover.restPose = "walk";

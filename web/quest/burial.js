@@ -256,6 +256,12 @@ export class BurialMode {
     this.ctx.movableReach = 0.55;
     this.state = "place";
     this.timer = 30;
+    this.ctx.setHint("The burial", [
+      "Carry the casket: point at it and hold the grip button.",
+      "Set it on a table or bed, then let go of the grip.",
+      "Lay your dead phone or device inside it.",
+      "Then pull a trigger, or pinch, to close the lid.",
+    ]);
     this.eulogy = this.fetchEulogy();
   }
 
@@ -366,6 +372,7 @@ export class BurialMode {
 
     if (this.state === "after" && this.timer <= 0) {
       this.state = "done";
+      this.ctx.setHint("", []);
       this.onDone();
     }
 
@@ -412,6 +419,7 @@ export class BurialMode {
     this.ctx.movable = null;
     this.state = "closing";
     this.timer = 2.6;
+    this.ctx.setHint("The burial", ["Stand still and listen to the service.", "Stay until the very end."]);
     this.ctx.caption.hide();
   }
 

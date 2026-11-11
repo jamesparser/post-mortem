@@ -10,9 +10,11 @@ import { AmbientMode } from "./ambient.js";
 import { HideSeekMode, ROUND_LENGTHS } from "./hideseek.js";
 import { BurialMode } from "./burial.js";
 import { SpiritBoardMode } from "./board.js";
-import { MenuPanel, Caption, WristButton, makeRay } from "./ui.js";
+import { MenuPanel, Caption, Hint, WristButton, makeRay } from "./ui.js";
 
 const JOINTS = ["index-finger-tip", "middle-finger-tip", "thumb-tip", "wrist", "middle-finger-metacarpal"];
+
+const MENU_LINE = "Menu: B or Y on a controller, or the brass button on your left wrist.";
 
 export class App {
   constructor(options = {}) {
@@ -60,7 +62,9 @@ export class App {
     this.menu = new MenuPanel();
     this.caption = new Caption();
     this.wrist = new WristButton();
-    this.scene.add(this.menu.mesh, this.caption.mesh, this.wrist.mesh);
+    this.hint = new Hint();
+    this.modeHint = { title: "", lines: [] };
+    this.scene.add(this.menu.mesh, this.caption.mesh, this.wrist.mesh, this.hint.mesh);
 
     this.inputs = [];
     this.selects = [];
@@ -78,6 +82,10 @@ export class App {
       audio: this.audio,
       mover: this.mover,
       caption: this.caption,
+      // Modes set the controls card for each step: a title and short lines.
+      setHint: (title, lines) => {
+        this.modeHint = { title, lines: [...(lines || []), MENU_LINE] };
+      },
       funeral: this.funeral,
       reachPoints: () => this.reachPoints(),
       touchPoints: () => this.touchPoints(),
@@ -242,10 +250,6 @@ export class App {
     const end = origin.clone().addScaledVector(dir, distance);
     this.grab = { entry, distance, offset: anchor.clone().sub(end) };
     this.haptics(0.4, 60);
-    if (this.caption && !this.grabHinted) {
-      this.grabHinted = true;
-      this.caption.show("Carrying. Walk it where you want it. Thumbstick forward pushes it away, back pulls it closer. Let go of the grip to set it down.", 6, true);
-    }
   }
 
   onGrabEnd(entry) {
@@ -417,6 +421,28 @@ export class App {
     if (this.session) this.session.end();
   }
 
+  // The controls card. Menus, floor setting and carrying override the mode.
+  updateHint(dt) {
+    let h = this.modeHint;
+    if (this.menu.mesh.visible) {
+      h = { title: "Menu", lines: ["Point at a choice and pull the trigger, or pinch.", "B, Y or the wrist button closes the menu."] };
+    } else if (this.awaitingFloor) {
+      h = { title: "Set the floor", lines: ["Touch the floor with a controller or a hand.", "Then pull the trigger, or pinch."] };
+    } else if (this.grab) {
+      h = {
+        title: "Carrying",
+        lines: [
+          "Walk it where you want it: a table, a bed, the floor.",
+          "Thumbstick forward pushes it away, back pulls it closer.",
+          "Thumbstick left or right turns it.",
+          "Let go of the grip to set it down.",
+        ],
+      };
+    }
+    this.hint.set(h.title, h.lines);
+    this.hint.update(this.camera, dt, false);
+  }
+
   startMode(name, arg) {
     this.menu.hide();
     if (this.mode && this.mode.exit) this.mode.exit();
@@ -507,6 +533,7 @@ export class App {
     this.pollButtons();
     this.updatePointers();
     this.caption.update(this.camera, dt);
+    this.updateHint(dt);
     this.audio.updateListener(this.camera);
     this.updateLight();
     this.renderer.render(this.scene, this.camera);

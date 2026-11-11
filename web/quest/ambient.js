@@ -31,6 +31,11 @@ export class AmbientMode {
     mover.place(spawn, Math.random() * Math.PI * 2);
     this.state = "listen";
     this.timer = 1.5;
+    this.ctx.setHint("Thing is loose", [
+      "He freezes when you look at him and moves when you look away.",
+      "Stand still too long and he comes for your shoulder.",
+      "Hide and seek, the burial and the spirit board are in the menu.",
+    ]);
     room.setStart(camera.getWorldPosition(new THREE.Vector3()));
     // Thing is not the only one in the house.
     this.ghost = new Ghost(this.ctx, { firstDelay: 45, minGap: 60, maxGap: 110 });

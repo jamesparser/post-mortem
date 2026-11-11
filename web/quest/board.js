@@ -232,12 +232,8 @@ export class SpiritBoardMode {
     const device = this.departed();
     if (this.kind === "device" && !device) this.kind = "dead";
     this.device = device;
-    caption.show(
-      (this.kind === "device" ? "It is " + device + ". " : "") +
-        "Put both hands on the planchette: pinch it, or hold both triggers. To carry the board, point at it and hold a grip button. Thumbstick raises or lowers it.",
-      9,
-      true
-    );
+    caption.show((this.kind === "device" ? "It is " + device + ". " : "") + "The board is open.", 5, true);
+    this.handsHint();
     setTimeout(() => this.round(), 4000);
   }
 
@@ -292,7 +288,16 @@ export class SpiritBoardMode {
   }
 
   // Wait until both hands (or both controllers) are gripping the planchette.
+  handsHint() {
+    this.ctx.setHint("The spirit board", [
+      "Both hands on the planchette: pinch it with both hands, or touch it with both controllers and hold both triggers.",
+      "Carry the board: point at it and hold a grip button. Thumbstick up or down raises it.",
+      "When it says so, ask your question out loud.",
+    ]);
+  }
+
   async waitForHands(message) {
+    this.handsHint();
     let nag = 0;
     while (!this.held && !this.closed) {
       if (performance.now() > nag) {
@@ -329,6 +334,10 @@ export class SpiritBoardMode {
       words = "NOT NOW";
     }
     await this.sleep(900);
+    this.ctx.setHint("It is answering", [
+      "Keep both hands on the planchette.",
+      "Let it pull you. Your controllers buzz harder as you near each letter.",
+    ]);
     const spelled = await this.spell(words);
     this.history.push({ q: question, a: spelled });
     caption.show("You asked: " + question + ".   It answered: " + spelled, 6, true);
@@ -340,6 +349,7 @@ export class SpiritBoardMode {
       await this.goTo("GOOD BYE");
       caption.show("GOOD BYE", 4, true);
       this.locked = true;
+      this.ctx.setHint("It has gone", ["Open the menu to try the other board, or bury something else."]);
       await this.sleep(4500);
       caption.show("It has gone. The board will not move for it again.", 6, true);
       this.busy = false;
@@ -360,6 +370,7 @@ export class SpiritBoardMode {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       caption.show(attempt ? "It did not hear you. Ask again, louder." : "Ask it a question. Out loud. Now.", 0, true);
       this.listening = true;
+      this.ctx.setHint("Ask it now", ["Speak your question out loud. It is listening for five seconds.", "Keep both hands on the planchette."]);
       const text = await this.recordQuestion(5200);
       this.listening = false;
       if (text) {
