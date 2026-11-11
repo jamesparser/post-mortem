@@ -112,3 +112,4 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 12.13 Burial ending reordered: four heartbeats that slow and fade, a long pause, then the knocking and the muffled shout, the scrabbling and the controllers bucking. Then nothing.
 - [x] 12.14 Ghosts that read in passthrough: dark shadow figures with a pale, half hidden face, 25 to 40 degrees off the gaze and 1.3 to 1.9 metres away, placed by head height so a wrong floor never hides them. Up to 88 percent opacity for four to seven seconds, gone the instant you look straight at one. First at about 12 seconds on the board, then every 20 to 35 seconds.
 - [x] 12.15 Eighteen spirit lines, darker (Why did you let me die. Count the people in the room. Now count again.), slowed by a random amount, sometimes with a much lower voice speaking along.
+- [x] 12.16 Seventeen more lines: under the bed, in the closet, in the walls, watching you sleep, and the dead devices still listening.

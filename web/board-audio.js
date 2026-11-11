@@ -114,6 +114,7 @@ const BoardAudio = (() => {
     "Do not turn around. Not yet.", "Count the people in the room. Now count again.", "Something followed you home.",
     "It is so dark down here.", "Can you hear me breathing?", "We never left this house.", "Help me. It hurts.",
     "I am right next to you.", "Say my name.", "You will be joining us soon.", "Do not take your finger off the board.",
+    "We are watching you.", "I live under your bed.", "I sleep in your closet. You always leave the door open for me.", "I like to watch you sleep.", "Who were you talking to just now?", "Check under the bed. I will wait.", "Do not look in the mirror tonight.", "There is one more of us than there was a minute ago.", "You cannot see me. I can see you.", "I have been in the walls since before you moved in.", "We hear you at night.", "Leave the light on. It will not help.", "Come and play with us.", "Come down to the basement.", "I read every message you deleted.", "Your old phone is still listening.", "The thing in the drawer is not dead either.",
   ]
   const VOICES = ["aura-2-luna-en", "aura-2-hera-en", "aura-2-orpheus-en"];
   const spoken = {};
