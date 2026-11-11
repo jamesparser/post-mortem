@@ -205,10 +205,16 @@ export class Hint {
   }
 
   // title: a few words. lines: up to four short instructions.
-  set(title, lines) {
+  set(title, lines, autoShow = true) {
     const key = title + "|" + (lines || []).join("|");
     if (key === this.key) return;
     this.key = key;
+    // A new step: show it for a while, then get out of the way. A card seen
+    // in the last minute and a half does not pop up again on its own.
+    if (!this.seen) this.seen = new Map();
+    const now = performance.now();
+    if (autoShow && title && now - (this.seen.get(key) || -1e9) > 90000) this.until = now + 9000;
+    if (title) this.seen.set(key, now);
     if (!title) {
       this.target = 0;
       return;
@@ -258,14 +264,28 @@ export class Hint {
     this.target = 1;
   }
 
-  update(camera, dt, hidden) {
+  dismiss() {
+    this.until = 0;
+  }
+
+  // Show the current card again, or hide it if it is showing.
+  toggle() {
+    this.until = this.isShowing() ? 0 : performance.now() + 15000;
+  }
+
+  isShowing() {
+    return this.target > 0 && performance.now() < (this.until || 0);
+  }
+
+  update(camera, dt, hidden, pinned) {
     const m = this.mesh.material;
-    const goalOpacity = hidden ? 0 : this.target * 0.92;
+    const on = pinned || performance.now() < (this.until || 0);
+    const goalOpacity = hidden || !on ? 0 : this.target * 0.92;
     m.opacity += (goalOpacity - m.opacity) * Math.min(1, dt * 4);
     this.mesh.visible = m.opacity > 0.01;
     const pos = camera.getWorldPosition(new THREE.Vector3());
     const dir = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
-    const goal = pos.clone().addScaledVector(dir, 0.95).add(new THREE.Vector3(0, -0.5, 0));
+    const goal = pos.clone().addScaledVector(dir, 0.95).add(new THREE.Vector3(0, -0.58, 0));
     if (this.anchor.distanceTo(goal) > 0.3 || !this.placed) {
       this.anchor.copy(goal);
       this.placed = true;

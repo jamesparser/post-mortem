@@ -14,7 +14,7 @@ import { MenuPanel, Caption, Hint, WristButton, makeRay } from "./ui.js";
 
 const JOINTS = ["index-finger-tip", "middle-finger-tip", "thumb-tip", "wrist", "middle-finger-metacarpal"];
 
-const MENU_LINE = "Menu: B or Y on a controller, or the brass button on your left wrist.";
+const MENU_LINE = "Menu: B or Y, or the brass wrist button. A shows these controls again.";
 
 export class App {
   constructor(options = {}) {
@@ -328,6 +328,8 @@ export class App {
   }
 
   onSelect(entry) {
+    // Any trigger or pinch puts the controls card away.
+    if (!this.menu.mesh.visible && !this.awaitingFloor) this.hint.dismiss();
     if (this.awaitingFloor) {
       const p = this.inputPosition(entry) || (entry.grip.visible ? entry.grip.getWorldPosition(new THREE.Vector3()) : null);
       if (p) {
@@ -372,6 +374,7 @@ export class App {
       { label: "The burial", note: "Lay a real device to rest", action: () => this.startMode("burial") },
       { label: "The spirit board", note: "On your table. Feel for the letters.", action: () => this.showBoardMenu() },
     ];
+    items.push({ label: "Show controls", note: "What to do right now", action: () => { this.menu.hide(); this.hint.toggle(); } });
     if (!this.room.hasScan) {
       items.push({ label: "Set the floor", note: "Touch it once so things stand on it", action: () => this.setFloor() });
       if (this.session && this.session.initiateRoomCapture) {
@@ -424,9 +427,12 @@ export class App {
   // The controls card. Menus, floor setting and carrying override the mode.
   updateHint(dt) {
     let h = this.modeHint;
+    let auto = true;
     if (this.menu.mesh.visible) {
+      auto = false;
       h = { title: "Menu", lines: ["Point at a choice and pull the trigger, or pinch.", "B, Y or the wrist button closes the menu."] };
     } else if (this.awaitingFloor) {
+      auto = false;
       h = { title: "Set the floor", lines: ["Touch the floor with a controller or a hand.", "Then pull the trigger, or pinch."] };
     } else if (this.grab) {
       h = {
@@ -439,8 +445,9 @@ export class App {
         ],
       };
     }
-    this.hint.set(h.title, h.lines);
-    this.hint.update(this.camera, dt, false);
+    this.hint.set(h.title, h.lines, auto);
+    // Menus and floor setting stay up while they are open.
+    this.hint.update(this.camera, dt, false, this.menu.mesh.visible || this.awaitingFloor);
   }
 
   startMode(name, arg) {
@@ -467,6 +474,10 @@ export class App {
       const pressed = Boolean((pad.buttons[5] && pad.buttons[5].pressed) || (pad.buttons[4] && pad.buttons[4].pressed && input.source.handedness === "left"));
       if (pressed && !input.lastMenuButton) this.toggleMenu();
       input.lastMenuButton = pressed;
+      // A on the right controller shows or hides the controls card.
+      const a = Boolean(pad.buttons[4] && pad.buttons[4].pressed && input.source.handedness === "right");
+      if (a && !input.lastA) this.hint.toggle();
+      input.lastA = a;
     }
   }
 
