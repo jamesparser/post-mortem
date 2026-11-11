@@ -101,6 +101,10 @@ export class HideSeekMode {
   sendToSpot() {
     const { mover } = this.ctx;
     this.spot = this.pickSpot();
+    if (this.ctx.report) {
+      const q = this.spot.position;
+      this.ctx.report("hide-spot", { category: this.spot.category, pose: this.spot.pose, spot: [q.x, q.y, q.z].map((n) => +n.toFixed(2)) });
+    }
     mover.restPose = "walk";
     mover.goTo(this.spot.position, {
       speed: 1.7,

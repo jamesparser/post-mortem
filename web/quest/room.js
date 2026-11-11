@@ -348,7 +348,11 @@ export class Room {
     const b = edge[Math.floor(rand() * edge.length)];
     const t = 0.2 + rand() * 0.6;
     const p = a.clone().lerp(b, t);
-    p.addScaledVector(new THREE.Vector3(wall.normal.x, 0, wall.normal.z).normalize(), 0.08);
+    // Inward from the wall, whichever way the plane faces.
+    const n = new THREE.Vector3(wall.normal.x, 0, wall.normal.z).normalize();
+    const toStart = new THREE.Vector3(this.start.x - p.x, 0, this.start.z - p.z);
+    if (n.dot(toStart) < 0) n.negate();
+    p.addScaledVector(n, 0.3);
     p.y = this.floorY;
     if (!this.insideRoom(p, 0.2) || this.insideFurniture(p)) return this.randomFloorPoint(rand);
     return p;
@@ -465,7 +469,8 @@ export class Room {
     }
 
     if (category === "hanging") {
-      for (const door of this.planeList().filter((p) => p.label === "door frame")) {
+      // Not from door frames: on a real wall he looked like he was inside it.
+      for (const door of []) {
         const topY = Math.max(...door.world.map((p) => p.y));
         const p = door.center.clone();
         p.y = topY;

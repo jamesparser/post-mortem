@@ -10,6 +10,10 @@ const LOOK_ANGLE = 0.26;
 const SCARE_COOLDOWN = 75;
 const GROAN_MIN = 70;
 
+function head0(camera) {
+  return camera.getWorldPosition(new THREE.Vector3());
+}
+
 export class AmbientMode {
   constructor(ctx) {
     this.ctx = ctx;
@@ -27,10 +31,15 @@ export class AmbientMode {
   enter() {
     const { mover, room, camera, audio } = this.ctx;
     audio.bed("storm-bed", 0.12, 4);
-    const spawn = this.pointOutOfView(2.5);
-    mover.place(spawn, Math.random() * Math.PI * 2);
+    // He starts where you can see him: on the floor a little ahead and to one
+    // side. Look away and he is gone.
+    const spawn = this.pointInView(1.6);
+    mover.place(spawn, Math.atan2(head0(camera).x - spawn.x, head0(camera).z - spawn.z));
     this.state = "listen";
-    this.timer = 1.5;
+    this.timer = 4;
+    this.ctx.audio.oneShot("scuffle", spawn, 0.5);
+    this.ctx.caption.show("Something is on the floor in front of you.", 4, true);
+    if (this.ctx.report) setTimeout(() => this.ctx.report("ambient-spawn", { spawn: [spawn.x, spawn.y, spawn.z].map((n) => +n.toFixed(2)) }), 1500);
     this.ctx.setHint("Thing is loose", [
       "He freezes when you look at him and moves when you look away.",
       "Stand still too long and he comes for your shoulder.",
@@ -44,6 +53,22 @@ export class AmbientMode {
   exit() {
     this.ctx.mover.stop();
     if (this.ghost) this.ghost.dispose();
+  }
+
+  pointInView(distance) {
+    const { room, camera } = this.ctx;
+    const head = head0(camera);
+    const fwd = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+    for (let i = 0; i < 30; i += 1) {
+      const a = (Math.random() - 0.5) * 0.9;
+      const dir = fwd.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a);
+      const p = head.clone().addScaledVector(dir, distance * (0.6 + Math.random() * 0.5));
+      p.y = room.floorY;
+      if (room.insideRoom(p, 0.2) && !room.insideFurniture(p) && !room.insideSolid(p.clone().setY(p.y + 0.03))) return p;
+    }
+    const p = head.clone().addScaledVector(fwd, 1.0);
+    p.y = room.floorY;
+    return p;
   }
 
   // A floor point behind the viewer, so he is never seen arriving.

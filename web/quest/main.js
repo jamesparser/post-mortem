@@ -107,7 +107,7 @@ export class App {
   }
 
   async enterXR() {
-    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test", "unbounded", "bounded-floor"];
+    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test", "bounded-floor"];
     // Depth sensing lets the real world hide Thing: walls, furniture, your own
     // legs. It works even when the room was never mapped. If the browser will
     // not open a session with it, try again without.
@@ -124,15 +124,9 @@ export class App {
       session = await navigator.xr.requestSession("immersive-ar", { requiredFeatures: ["local-floor"], optionalFeatures: base });
     }
     this.session = session;
-    // Unbounded space lets you walk the whole house without the headset
-    // asking you to stay inside a boundary. Fall back to a floor-level space.
-    let spaceType = "local-floor";
-    try {
-      await session.requestReferenceSpace("unbounded");
-      spaceType = "unbounded";
-    } catch (err) {
-      spaceType = "local-floor";
-    }
+    // Floor level space: y = 0 is the real floor, so Thing always stands on it.
+    // (Unbounded space did not stop the boundary warning and moved the floor.)
+    const spaceType = "local-floor";
     this.spaceType = spaceType;
     // If the player has a boundary, read its shape so hiding spots stay inside it.
     session
@@ -147,6 +141,38 @@ export class App {
     await audioReady;
     session.addEventListener("end", () => this.onEnd());
     this.renderer.setAnimationLoop((t, frame) => this.tick(frame));
+    this.ctx.report = (tag, extra) => this.report(tag, extra);
+    setTimeout(() => this.report("start"), 15000);
+  }
+
+  // A short room report to the server log, so a problem seen in the headset
+  // can be checked afterwards. Geometry and labels only, nothing personal.
+  report(tag, extra = {}) {
+    try {
+      const r = this.room;
+      const count = (list) => list.reduce((a, x) => ((a[x.label || "?"] = (a[x.label || "?"] || 0) + 1), a), {});
+      const v = (p) => (p ? [+p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)] : null);
+      const body = {
+        tag,
+        mode: this.modeName,
+        space: this.spaceType,
+        depth: Boolean(this.session && this.session.depthUsage),
+        floorY: +r.floorY.toFixed(3),
+        floorPoly: r.floorPolygon ? r.floorPolygon.length : 0,
+        boundary: r.boundary ? r.boundary.length : 0,
+        planes: count(r.planeList()),
+        meshes: count(r.meshList()),
+        walls: r.wallSegments().length,
+        start: v(r.start),
+        head: v(this.camera.getWorldPosition(new THREE.Vector3())),
+        thing: v(this.mover.position),
+        thingVisible: Boolean(this.thing.root.visible),
+        ...extra,
+      };
+      fetch("/api/debug", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
+    } catch (err) {
+      // Reports are optional.
+    }
   }
 
   async enterPreview() {

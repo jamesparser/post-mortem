@@ -336,6 +336,13 @@ app.post("/api/speak", async (req, res) => {
 // times, colder each time, and the client sends it to GOOD BYE after the last.
 // Speech to text for questions asked out loud, for browsers without their own
 // recognition (the Quest browser among them). Deepgram, same key as the voice.
+// Room reports from the Quest app, for debugging what the headset saw.
+app.post("/api/debug", (req, res) => {
+  const text = JSON.stringify(req.body || {}).slice(0, 4000);
+  console.log("quest-report " + text);
+  res.json({ ok: true });
+});
+
 app.post(
   "/api/listen",
   express.raw({ type: ["audio/*", "video/webm", "application/octet-stream"], limit: "6mb" }),
