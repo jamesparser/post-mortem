@@ -238,14 +238,80 @@ export class Room {
     );
   }
 
-  insideRoom(point) {
+  // Inside the mapped floor, and at least `margin` metres from every wall.
+  insideRoom(point, margin = 0) {
     if (this.boundary && !pointInPolygonXZ(point, this.boundary)) return false;
+    // Never through a wall the headset knows about, and never too close to one.
+    if (this.wallBlocks(point, margin)) return false;
     if (!this.floorPolygon || this.floorPolygon.length < 3) {
       const dx = point.x - this.start.x;
       const dz = point.z - this.start.z;
-      return Math.hypot(dx, dz) < (this.hasScan ? 4.5 : 1.8);
+      return Math.hypot(dx, dz) < (this.hasScan ? 4.5 : 1.8) - margin;
     }
-    return pointInPolygonXZ(point, this.floorPolygon);
+    if (!pointInPolygonXZ(point, this.floorPolygon)) return false;
+    return !margin || distanceToEdgesXZ(point, this.floorPolygon) >= margin;
+  }
+
+  // Wall planes as floor-level segments.
+  wallSegments() {
+    if (this.wallCache && this.wallCache.version === this.version) return this.wallCache.list;
+    const list = [];
+    for (const p of this.planeList()) {
+      if (p.orientation !== "vertical" || (p.label !== "wall" && p.label !== "wall art" && p.label !== "window" && p.label !== "door frame")) continue;
+      if (p.world.length < 2) continue;
+      // The two points farthest apart along the wall, flattened.
+      let a = p.world[0];
+      let b = p.world[1];
+      let best = -1;
+      for (const u of p.world) for (const v of p.world) {
+        const d = (u.x - v.x) ** 2 + (u.z - v.z) ** 2;
+        if (d > best) { best = d; a = u; b = v; }
+      }
+      list.push([a, b]);
+    }
+    this.wallCache = { version: this.version, list };
+    return list;
+  }
+
+  wallBlocks(point, margin) {
+    for (const [a, b] of this.wallSegments()) {
+      if (segmentsCrossXZ(this.start, point, a, b)) return true;
+      if (margin && distanceToEdgesXZ(point, [a, b]) < margin) return true;
+    }
+    return false;
+  }
+
+  // Inside a solid piece of furniture: a bed, a sofa, a cabinet. Tables and
+  // desks are open underneath, so they do not count.
+  insideSolid(point, margin = 0.04) {
+    // A bed or sofa the headset only knows as a flat top: nothing fits under it.
+    for (const s of this.surfaces()) {
+      if (s.label === "table" || s.label === "desk" || s.label === "floor") continue;
+      if (s.y - this.floorY > 1.0 || point.y > s.y) continue;
+      if (pointInPolygonXZ(point, s.world)) return true;
+    }
+    return this.meshList().some((m) => {
+      if (m.label === "global mesh" || m.label === "table" || m.label === "desk") return false;
+      const b = m.box;
+      return (
+        point.x > b.min.x - margin && point.x < b.max.x + margin &&
+        point.z > b.min.z - margin && point.z < b.max.z + margin &&
+        point.y > b.min.y - 0.05 && point.y < b.max.y - 0.02
+      );
+    });
+  }
+
+  // The highest solid top under a point, so he sits on a bed and not in it.
+  topAt(point, y) {
+    let top = y;
+    for (const m of this.meshList()) {
+      if (m.label === "global mesh") continue;
+      const b = m.box;
+      if (point.x > b.min.x && point.x < b.max.x && point.z > b.min.z && point.z < b.max.z && b.max.y > top && b.max.y - y < 0.35) {
+        top = b.max.y;
+      }
+    }
+    return top;
   }
 
   insideFurniture(point, margin = 0.05) {
@@ -266,7 +332,7 @@ export class Room {
       const r = Math.sqrt(rand()) * (radius || 3.5);
       const base = near || this.start;
       const p = new THREE.Vector3(base.x + Math.cos(a) * r, this.floorY, base.z + Math.sin(a) * r);
-      if (this.insideRoom(p) && !this.insideFurniture(p)) return p;
+      if (this.insideRoom(p, 0.2) && !this.insideFurniture(p) && !this.insideSolid(p.clone().setY(p.y + 0.03))) return p;
     }
     return new THREE.Vector3(this.start.x + 1, this.floorY, this.start.z + 1);
   }
@@ -284,7 +350,7 @@ export class Room {
     const p = a.clone().lerp(b, t);
     p.addScaledVector(new THREE.Vector3(wall.normal.x, 0, wall.normal.z).normalize(), 0.08);
     p.y = this.floorY;
-    if (!this.insideRoom(p) || this.insideFurniture(p)) return this.randomFloorPoint(rand);
+    if (!this.insideRoom(p, 0.2) || this.insideFurniture(p)) return this.randomFloorPoint(rand);
     return p;
   }
 
@@ -347,7 +413,7 @@ export class Room {
 
     if (category === "under") {
       for (const s of this.surfaces()) {
-        if (s.label !== "table" && s.label !== "desk" && s.label !== "") continue;
+        if (s.label !== "table" && s.label !== "desk") continue;
         if (s.y - this.floorY < 0.4) continue;
         const p = s.center.clone();
         p.y = this.floorY;
@@ -403,7 +469,7 @@ export class Room {
         const topY = Math.max(...door.world.map((p) => p.y));
         const p = door.center.clone();
         p.y = topY;
-        p.addScaledVector(new THREE.Vector3(door.normal.x, 0, door.normal.z).normalize(), 0.03);
+        p.addScaledVector(new THREE.Vector3(door.normal.x, 0, door.normal.z).normalize(), 0.08);
         if (far(p)) candidates.push({ position: p, yaw: Math.atan2(door.normal.x, door.normal.z), pose: "hang", climbWall: door });
       }
       for (const s of this.surfaces()) {
@@ -417,6 +483,19 @@ export class Room {
       }
     }
 
+    // Every spot must be in the mapped room, away from the walls, and never
+    // inside a bed, a sofa or anything else solid.
+    for (const c of candidates) {
+      if (c.surface && c.pose !== "hang") c.position.y = this.topAt(c.position, c.position.y) + 0.005;
+    }
+    const valid = candidates.filter((c) => {
+      const wallGap = c.pose === "hang" && c.climbWall ? 0 : c.surface ? 0.12 : 0.22;
+      if (!this.insideRoom(c.position, wallGap)) return false;
+      const probe = c.position.clone().add(new THREE.Vector3(0, 0.03, 0));
+      return !this.insideSolid(probe);
+    });
+    candidates.length = 0;
+    candidates.push(...valid);
     if (!candidates.length) return null;
     if (category === "top") candidates.sort((a, b) => b.weight - a.weight);
     const pick = category === "top" && rand() < 0.5 ? candidates[0] : candidates[Math.floor(rand() * candidates.length)];
@@ -433,7 +512,7 @@ export class Room {
       const reach = i < 20 ? 2.2 + rand() * 1.3 : 0.9 + rand() * 0.8;
       const p = this.start.clone().addScaledVector(dir, reach);
       p.y = this.floorY;
-      if (this.insideRoom(p) && !this.insideFurniture(p)) {
+      if (this.insideRoom(p, 0.22) && !this.insideSolid(p.clone().setY(p.y + 0.03))) {
         return { category: "behind", position: p, yaw: Math.atan2(-dir.x, -dir.z), pose: "still" };
       }
     }
@@ -441,6 +520,24 @@ export class Room {
     p.y = this.floorY;
     return { category: "behind", position: p, yaw: 0, pose: "still" };
   }
+}
+
+export function segmentsCrossXZ(p1, p2, p3, p4) {
+  const d = (a, b, c) => (b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x);
+  const d1 = d(p3, p4, p1), d2 = d(p3, p4, p2), d3 = d(p1, p2, p3), d4 = d(p1, p2, p4);
+  return d1 * d2 < 0 && d3 * d4 < 0;
+}
+
+export function distanceToEdgesXZ(p, poly) {
+  let best = Infinity;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
+    const ax = poly[j].x, az = poly[j].z, bx = poly[i].x, bz = poly[i].z;
+    const dx = bx - ax, dz = bz - az;
+    const len = dx * dx + dz * dz || 1;
+    const t = Math.max(0, Math.min(1, ((p.x - ax) * dx + (p.z - az) * dz) / len));
+    best = Math.min(best, Math.hypot(p.x - (ax + t * dx), p.z - (az + t * dz)));
+  }
+  return best;
 }
 
 export function pointInPolygonXZ(p, poly) {

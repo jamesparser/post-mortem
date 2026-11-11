@@ -56,7 +56,7 @@ export class AmbientMode {
       const dir = fwd.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a);
       const p = head.clone().addScaledVector(dir, distance * (0.7 + Math.random() * 0.6));
       p.y = room.floorY;
-      if (room.insideRoom(p) && !room.insideFurniture(p)) return p;
+      if (room.insideRoom(p, 0.2) && !room.insideFurniture(p) && !room.insideSolid(p.clone().setY(p.y + 0.03))) return p;
     }
     return room.randomFloorPoint(Math.random, head, distance);
   }
