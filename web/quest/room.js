@@ -46,7 +46,32 @@ export class Room {
     this.start.set(position.x, this.floorY, position.z);
   }
 
+  // The headset boundary, if the player has one, so Thing never hides
+  // somewhere the system will tell them they cannot walk.
+  setBoundarySpace(space) {
+    this.boundarySpace = space;
+  }
+
+  readBoundary(frame, refSpace) {
+    if (this.boundary || !this.boundarySpace || !this.boundarySpace.boundsGeometry) return;
+    const pts = this.boundarySpace.boundsGeometry;
+    if (!pts || pts.length < 3) return;
+    const pose = frame.getPose(this.boundarySpace, refSpace);
+    if (!pose) return;
+    const m = new THREE.Matrix4().fromArray(pose.transform.matrix);
+    const world = Array.from(pts).map((p) => new THREE.Vector3(p.x, 0, p.z).applyMatrix4(m));
+    // Pull it in by 30 cm so he is always reachable without touching the edge.
+    const c = world.reduce((a, p) => a.add(p), new THREE.Vector3()).divideScalar(world.length);
+    this.boundary = world.map((p) => {
+      const d = p.clone().sub(c);
+      const len = Math.hypot(d.x, d.z);
+      return len > 0.4 ? c.clone().addScaledVector(d, (len - 0.3) / len) : p;
+    });
+    this.boundaryRadius = Math.max(...this.boundary.map((p) => Math.hypot(p.x - c.x, p.z - c.z)));
+  }
+
   update(frame, refSpace) {
+    this.readBoundary(frame, refSpace);
     let changed = false;
     const planes = frame.detectedPlanes;
     if (planes) {
@@ -214,6 +239,7 @@ export class Room {
   }
 
   insideRoom(point) {
+    if (this.boundary && !pointInPolygonXZ(point, this.boundary)) return false;
     if (!this.floorPolygon || this.floorPolygon.length < 3) {
       const dx = point.x - this.start.x;
       const dz = point.z - this.start.z;
@@ -313,7 +339,9 @@ export class Room {
 
   // Pick a hiding spot of a category. Returns null if the room has none.
   hideSpot(category, rand) {
-    const far = (p) => Math.hypot(p.x - this.start.x, p.z - this.start.z) >= 2;
+    // Far enough to need finding, but inside a small boundary too.
+    const minFar = this.boundary ? Math.min(2, this.boundaryRadius * 0.5) : this.hasScan ? 2 : 0.9;
+    const far = (p) => Math.hypot(p.x - this.start.x, p.z - this.start.z) >= minFar;
     const awayYaw = (p) => Math.atan2(this.start.x - p.x, this.start.z - p.z);
     const candidates = [];
 
@@ -398,16 +426,18 @@ export class Room {
   // A spot that always exists, for rooms without a scan.
   fallbackSpot(rand, viewerForward) {
     const back = viewerForward.clone().setY(0).normalize().multiplyScalar(-1);
-    for (let i = 0; i < 20; i += 1) {
-      const a = (rand() - 0.5) * 1.6;
+    for (let i = 0; i < 40; i += 1) {
+      const a = (rand() - 0.5) * (i < 20 ? 1.6 : 3.4);
       const dir = back.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a);
-      const p = this.start.clone().addScaledVector(dir, 2.2 + rand() * 1.3);
+      // Try far first, then closer, so the spot is always inside the room.
+      const reach = i < 20 ? 2.2 + rand() * 1.3 : 0.9 + rand() * 0.8;
+      const p = this.start.clone().addScaledVector(dir, reach);
       p.y = this.floorY;
       if (this.insideRoom(p) && !this.insideFurniture(p)) {
         return { category: "behind", position: p, yaw: Math.atan2(-dir.x, -dir.z), pose: "still" };
       }
     }
-    const p = this.start.clone().addScaledVector(back, 2.2);
+    const p = this.start.clone().addScaledVector(back, 1.1);
     p.y = this.floorY;
     return { category: "behind", position: p, yaw: 0, pose: "still" };
   }

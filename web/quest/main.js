@@ -107,7 +107,7 @@ export class App {
   }
 
   async enterXR() {
-    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test", "unbounded"];
+    const base = ["hand-tracking", "plane-detection", "mesh-detection", "anchors", "hit-test", "unbounded", "bounded-floor"];
     // Depth sensing lets the real world hide Thing: walls, furniture, your own
     // legs. It works even when the room was never mapped. If the browser will
     // not open a session with it, try again without.
@@ -134,6 +134,11 @@ export class App {
       spaceType = "local-floor";
     }
     this.spaceType = spaceType;
+    // If the player has a boundary, read its shape so hiding spots stay inside it.
+    session
+      .requestReferenceSpace("bounded-floor")
+      .then((space) => this.room.setBoundarySpace(space))
+      .catch(() => {});
     this.renderer.xr.setReferenceSpaceType(spaceType);
     // Controllers must exist before the session starts, or three.js never
     // reports the input sources that are already connected.

@@ -115,3 +115,4 @@ Sequenced checklist. Keep status in sync as tasks complete.
 - [x] 12.16 Seventeen more lines: under the bed, in the closet, in the walls, watching you sleep, and the dead devices still listening.
 - [x] 12.17 Ten spirit voices, female and male. Voices move: fixed behind one ear, passing behind the head from ear to ear, circling all the way round, or coming from across the room right up to the ear. Same on the web board.
 - [x] 12.18 Fewer voices: at least forty seconds between random spoken lines, ambience every 14 to 26 seconds, and only about a third of the figures speak. Board answers are always spoken.
+- [x] 12.19 Thing always hides inside the headset boundary when there is one (bounded-floor, pulled in by 30 cm), and never beyond reach in an unmapped room. After the first third of the hunt the controllers pulse warmer as you get closer, and every twelve seconds a caption says roughly where he is.

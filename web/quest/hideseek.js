@@ -205,6 +205,7 @@ export class HideSeekMode {
           true
         );
       }
+      this.helpFind(dt);
       if (this.found()) return this.onFound();
       if (this.huntTime >= this.length.hunt) return this.onTimeout();
       return;
@@ -242,7 +243,8 @@ export class HideSeekMode {
     this.ctx.setHint("Your turn: find him", [
       "Walk around your room and look low and high: under tables, on counters, behind things.",
       "Touch him with a hand or a controller to win.",
-      "Listen: he breathes, and his nails tap now and then.",
+      "Listen: he breathes, and his nails tap now and then. Later the controllers pulse faster as you get closer.",
+      "He always hides inside your boundary. To play in the whole house, turn the boundary off in the headset settings.",
     ]);
     this.huntTime = 0;
     this.lastShownSecond = this.length.hunt;
@@ -253,6 +255,35 @@ export class HideSeekMode {
       this.breath.setPosition(mover.position);
       this.breath.start();
       this.breath.setGain(0.22, 1);
+    }
+  }
+
+  // Help when you are stuck. After the first third of the hunt the
+  // controllers pulse warmer as you get closer, and now and then a whisper
+  // tells you roughly where he is: behind you, to one side, low or high.
+  helpFind(dt) {
+    const { mover, camera, caption, haptics } = this.ctx;
+    if (this.huntTime < this.length.hunt / 3) return;
+    const head = camera.getWorldPosition(new THREE.Vector3());
+    const to = mover.position.clone().sub(head);
+    const dist = Math.hypot(to.x, to.z);
+    this.warmTimer = (this.warmTimer ?? 0) - dt;
+    if (this.warmTimer <= 0) {
+      const warm = Math.max(0, 1 - dist / 4);
+      this.warmTimer = 1.6 - warm * 1.2;
+      haptics(0.1 + warm * warm * 0.8, 40 + warm * 60);
+    }
+    this.clueTimer = (this.clueTimer ?? 6) - dt;
+    if (this.clueTimer <= 0) {
+      this.clueTimer = 12;
+      const fwd = camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
+      const flat = to.clone().setY(0).normalize();
+      const ang = Math.atan2(fwd.x * flat.z - fwd.z * flat.x, fwd.dot(flat));
+      const deg = THREE.MathUtils.radToDeg(ang);
+      const where = Math.abs(deg) < 35 ? "somewhere in front of you" : Math.abs(deg) > 130 ? "behind you" : deg > 0 ? "to your right" : "to your left";
+      const height = mover.position.y - this.ctx.room.floorY > 0.5 ? ", up high" : ", down low";
+      const far = dist > 2.5 ? " Keep walking." : dist < 1.2 ? " Very close now." : "";
+      caption.show("He is " + where + height + "." + far + " The controllers pulse faster as you get closer.", 4, true);
     }
   }
 
