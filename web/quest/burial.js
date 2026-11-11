@@ -5,6 +5,9 @@
 // heartbeat from underneath.
 
 import * as THREE from "three";
+
+const SHOUT = "Wait! I am not dead yet! Let me out!";
+const SHOUT_VOICE = "aura-2-orpheus-en";
 import { woodTextures, woodMaterial, brassMaterial, satinMaterial } from "./skin.js";
 import { Program } from "./ui.js";
 import { VOICE_RATE } from "./audio.js";
@@ -251,17 +254,15 @@ export class BurialMode {
     this.program.mesh.visible = false;
     scene.add(this.program.mesh);
     audio.bed("storm-bed", 0.08, 3);
-    caption.show("Carry the casket: point at it and hold the grip button. Lay the departed inside, then pull a trigger or pinch to close the lid.", 10, true);
     this.ctx.movable = this.root;
     this.ctx.movableReach = 0.55;
     this.state = "place";
+    this.step = "carry";
+    this.stepAge = 0;
     this.timer = 30;
-    this.ctx.setHint("The burial", [
-      "Carry the casket: point at it and hold the grip button.",
-      "Set it on a table or bed, then let go of the grip.",
-      "Lay your dead phone or device inside it.",
-      "Then pull a trigger, or pinch, to close the lid.",
-    ]);
+    this.showStep();
+    // The voice from inside, fetched now so it is ready at the end.
+    this.ctx.audio.preload(SHOUT, { voice: SHOUT_VOICE });
     this.eulogy = this.fetchEulogy();
   }
 
@@ -309,22 +310,25 @@ export class BurialMode {
     this.age = (this.age || 0) + dt;
     const casketCenter = this.casket.getWorldPosition(new THREE.Vector3());
 
+    // Two clear steps. First put the casket where you want it. Then put the
+    // phone in. Nothing closes until you say so, and never while carrying.
     if (this.state === "place") {
-      const box = this.interiorBox().expandByScalar(0.06);
-      const inside = reachPoints().some((p) => box.containsPoint(p));
-      if (inside) {
-        this.insideFor += dt;
-      } else if (this.insideFor > 0.6) {
+      this.stepAge += dt;
+      const carrying = this.ctx.isCarrying && this.ctx.isCarrying();
+      if (carrying) this.stepAge = 0;
+      const pressed = !carrying && this.stepAge > 1.2 && anySelect && anySelect();
+      if (this.step === "carry" && pressed) {
+        this.step = "phone";
+        this.stepAge = 0;
+        this.ctx.movable = null;
+        audio.oneShot("thud", casketCenter, 0.2, 1.4);
+        this.showStep();
+      } else if (this.step === "phone" && pressed && this.stepAge > 1.5) {
         return this.closeLid();
-      } else {
-        this.insideFor = 0;
       }
-      if (selectedNear(casketCenter, 0.35)) return this.closeLid();
-      // Any trigger or pinch, once the departed is in, closes the lid.
-      if (this.age > 2 && anySelect && anySelect()) return this.closeLid();
       if (this.timer <= 0) {
-        caption.show("When the departed is inside, pull a trigger or pinch to close the lid.", 5, true);
-        this.timer = 30;
+        this.showStep();
+        this.timer = 25;
       }
     }
 
@@ -363,6 +367,13 @@ export class BurialMode {
     }
 
     if (this.state === "silence" && this.timer <= 0) this.beginHeartbeat();
+    if (this.shake > 0) {
+      this.shake = Math.max(0, this.shake - dt);
+      const j = this.shake * 0.02;
+      this.casket.position.x = (Math.random() - 0.5) * j;
+      this.casket.position.z = (Math.random() - 0.5) * j;
+      this.casket.rotation.z = (Math.random() - 0.5) * j * 2;
+    }
 
     if (this.state === "heartbeat" && this.timer <= 0) {
       this.state = "after";
@@ -387,6 +398,24 @@ export class BurialMode {
     this.petals.update(dt, this.dropY === undefined ? 0 : this.root.position.y - this.dropY);
   }
 
+  showStep() {
+    const { caption, setHint } = this.ctx;
+    if (this.step === "carry") {
+      caption.show("First, put the casket where you want it. Point at it and hold the grip to carry it. Pull the trigger when it is in place.", 9, true);
+      setHint("Step 1 of 2: place the casket", [
+        "Point at the casket and hold the grip button to carry it.",
+        "Set it on a table, a bed or the floor and let go of the grip.",
+        "Pull the trigger, or pinch, when it is where you want it.",
+      ]);
+    } else {
+      caption.show("Now put your phone in the casket. Take your time. When it is inside, pull the trigger to close the lid.", 0, true);
+      setHint("Step 2 of 2: lay it to rest", [
+        "Put your dead phone or device inside the open casket.",
+        "When it is inside, pull the trigger, or pinch, to close the lid.",
+      ]);
+    }
+  }
+
   // The point under the floor where the casket came to rest.
   gravePoint() {
     const p = this.root.position.clone();
@@ -394,25 +423,63 @@ export class BurialMode {
     return p;
   }
 
-  // Something under the floor will not stay quiet. A muffled lub dub, three
-  // or four times, each a little weaker, with the controllers beating in the
-  // same rhythm. Then nothing, and it does not come back.
+  // Something under the floor will not stay quiet. It knocks, it shouts,
+  // muffled through the lid, and the controllers buck as if it is trying to
+  // get out. Then a heartbeat, three or four times, weaker each time. Then
+  // nothing, and it does not come back. The device stays dead.
   beginHeartbeat() {
-    const { audio, haptics } = this.ctx;
-    const beats = 3 + (Math.random() < 0.5 ? 1 : 0);
-    const period = 1.05;
+    const { audio, haptics, camera, caption, setHint } = this.ctx;
     this.state = "heartbeat";
-    this.timer = beats * period + 2.4;
-    const at = this.gravePoint();
+    setHint("Listen", ["Something under the ground is not finished.", "Hold still. Feel the controllers."]);
+    const head = camera.getWorldPosition(new THREE.Vector3());
+    // Quest speakers lose deep bass, so the sound sits close and a little low.
+    const toward = this.root.position.clone().setY(head.y - 0.7).sub(head);
+    const near = head.clone().addScaledVector(toward.normalize(), 0.6).setY(head.y - 0.7);
+    const at = (ms, fn) => setTimeout(() => this.state === "heartbeat" && fn(), ms);
+    const knock = (strength) => {
+      audio.oneShot("thud", near, 0.9 * strength, 1.25);
+      audio.oneShot("nails-tap", near, 0.5 * strength, 0.6);
+      haptics(0.95 * strength, 140);
+      this.shake = 0.35;
+    };
+    // Knocking from inside.
+    [0, 380, 760, 1700, 2000].forEach((t, i) => at(t, () => knock(i < 3 ? 1 : 0.8)));
+    // A muffled shout.
+    at(2700, () => {
+      haptics(1, 450);
+      this.shake = 0.6;
+      audio.speech(SHOUT, near, { voice: SHOUT_VOICE, rate: 0.95, volume: 1.6, lowpass: 650, dry: true }).then((ok) => {
+        if (!ok) audio.oneShot("groans", near, 0.9, 1.2);
+      });
+    });
+    // Scrabbling and one long buck of the controllers, as if it is trying to get out.
+    at(4900, () => {
+      audio.oneShot("scuffle", near, 0.8, 0.8);
+      haptics(1, 900);
+      this.shake = 0.9;
+    });
+    // Then the heartbeat, slowing and fading.
+    const beats = 3 + (Math.random() < 0.5 ? 1 : 0);
+    const start = 7200;
+    let period = 1000;
+    let t = start;
     for (let i = 0; i < beats; i += 1) {
-      const strength = 1 - i * 0.12;
-      setTimeout(() => {
-        if (this.state !== "heartbeat") return;
-        audio.oneShot("heartbeat", at, 0.75 * strength);
-        haptics(0.6 * strength, 70);
-        setTimeout(() => this.state === "heartbeat" && haptics(0.42 * strength, 90), 260);
-      }, i * period * 1000);
+      const strength = 1 - i * 0.18;
+      at(t, () => {
+        audio.oneShot("heartbeat", near, 1.2 * strength, 1.3);
+        audio.oneShot("thud", near, 0.35 * strength, 1.8);
+        haptics(0.9 * strength, 90);
+        this.shake = 0.25 * strength;
+      });
+      at(t + 280, () => {
+        audio.oneShot("thud", near, 0.25 * strength, 2);
+        haptics(0.65 * strength, 110);
+      });
+      t += period;
+      period += 250;
     }
+    this.timer = (t + 2600) / 1000;
+    caption.hide();
   }
 
   closeLid() {

@@ -200,6 +200,10 @@ export class AudioEngine {
   // A spoken spirit line from Deepgram, cached by text and voice. Played
   // slowed (so lower), through the stone reverb, from a point in the room.
   // A faint second copy a few milliseconds late makes it sound doubled.
+  preload(text, options = {}) {
+    return this.speech(text, null, { ...options, silent: true });
+  }
+
   async speech(text, at, options = {}) {
     if (!this.ctx) return false;
     const key = "tts:" + (options.voice || "") + ":" + text;
@@ -225,6 +229,7 @@ export class AudioEngine {
     } catch (err) {
       return false;
     }
+    if (options.silent) return true;
     const buf = this.buffers[key];
     const rate = options.rate || 0.82;
     const volume = options.volume ?? 1.1;
@@ -234,7 +239,7 @@ export class AudioEngine {
       src.playbackRate.value = rate * detune;
       const lp = this.ctx.createBiquadFilter();
       lp.type = "lowpass";
-      lp.frequency.value = 3200;
+      lp.frequency.value = options.lowpass || 3200;
       const gain = this.ctx.createGain();
       gain.gain.value = vol;
       src.connect(lp);
@@ -249,7 +254,7 @@ export class AudioEngine {
       }
       gain.connect(pan);
       pan.connect(this.master);
-      gain.connect(this.church());
+      if (!options.dry) gain.connect(this.church());
       src.start(this.ctx.currentTime + delay);
       return src;
     };

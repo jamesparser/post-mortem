@@ -93,6 +93,7 @@ export class App {
       movable: null,
       selectedNear: (p, r) => this.selectedNear(p, r),
       anySelect: () => this.selects.length > 0 && !this.menu.mesh.visible,
+      isCarrying: () => Boolean(this.grab),
       haptics: (i, ms) => this.haptics(i, ms),
       visibility: () => (this.session ? this.session.visibilityState || "visible" : "visible"),
     };
